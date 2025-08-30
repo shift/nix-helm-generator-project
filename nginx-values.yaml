@@ -1,10 +1,15 @@
-# Minimal values to match Nix nginx example
+# Simplified values to better match Nix nginx example
 image:
   registry: docker.io
   repository: nginx
   tag: "1.25.0"
 
 replicaCount: 1
+
+# Use same ports as Nix example
+containerPorts:
+  http: 80
+  https: 443
 
 service:
   type: ClusterIP
@@ -20,6 +25,7 @@ resources:
     cpu: 100m
     memory: 128Mi
 
+# Match Nix security context
 podSecurityContext:
   runAsUser: 101
   runAsGroup: 101
@@ -64,7 +70,7 @@ pdb:
   enabled: true
   minAvailable: "50%"
 
-# Custom nginx configuration
+# Custom nginx configuration matching Nix
 serverBlock: |
   events {
     worker_connections 1024;
@@ -81,3 +87,14 @@ serverBlock: |
 extraEnvVars:
   - name: NGINX_PORT
     value: "80"
+
+# Disable complex features to match Nix simplicity
+serviceAccount:
+  create: false
+
+metrics:
+  enabled: false
+
+# Use RollingUpdate but keep it simple
+updateStrategy:
+  type: RollingUpdate
