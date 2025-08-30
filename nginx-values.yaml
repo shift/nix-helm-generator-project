@@ -1,0 +1,83 @@
+# Minimal values to match Nix nginx example
+image:
+  registry: docker.io
+  repository: nginx
+  tag: "1.25.0"
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  ports:
+    http: 80
+    https: 443
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+podSecurityContext:
+  runAsUser: 101
+  runAsGroup: 101
+  fsGroup: 101
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 101
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 30
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+ingress:
+  enabled: true
+  hostname: nginx.example.com
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls: true
+  secretName: nginx-tls
+
+networkPolicy:
+  enabled: true
+  allowExternal: false
+
+pdb:
+  enabled: true
+  minAvailable: "50%"
+
+# Custom nginx configuration
+serverBlock: |
+  events {
+    worker_connections 1024;
+  }
+  http {
+    server {
+      listen 80;
+      location / {
+        return 200 "Hello from Nginx!\n";
+      }
+    }
+  }
+
+extraEnvVars:
+  - name: NGINX_PORT
+    value: "80"
