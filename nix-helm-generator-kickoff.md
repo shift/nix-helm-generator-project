@@ -4,6 +4,11 @@
 
 This project aims to create a Nix module that generates production-ready Helm charts from Nix expressions. The module will produce static YAML manifests without Helm templating, making deployments more predictable and easier to audit. It will support all production-grade Kubernetes features while maintaining simplicity for junior DevOps engineers.
 
+**📖 Related Documentation:**
+- [Main README](../README.md) - Project overview and quick start
+- [AI Agent Workflow](../ai-agent-workflow/README.md) - Development workflow and task management
+- [AI Agent Workflow Guide](../ai-agent-workflow/WORKFLOW.md) - Detailed development process
+
 ## Project Scope
 
 ### Core Objectives
@@ -239,6 +244,20 @@ nix-helm-generator.mkChart {
 }
 ```
 
+## Development Workflow
+
+This project uses the AI Agent Workflow Management System for structured development. The workflow follows an iterative Implementation → Testing → Documentation cycle with specialized agents.
+
+**📋 Workflow Components:**
+- **Implementation Agent**: Handles code development and technical decisions
+- **Testing Agent**: Comprehensive validation and quality assurance
+- **Documentation Agent**: Technical writing and documentation maintenance
+
+**🔗 Integration Points:**
+- [Task Management](../ai-agent-workflow/todo.md) - Active tasks and priorities
+- [Context Files](../ai-agent-workflow/context/) - Real-time development state
+- [Task Definitions](../ai-agent-workflow/tasks/) - Detailed task specifications
+
 ## Implementation Roadmap
 
 ### Phase 1: Core Infrastructure (Week 1-2)
@@ -283,11 +302,19 @@ nix-helm-generator.mkChart {
 - VS Code with Nix extensions
 - Docker for testing (optional)
 
+**🔗 Environment Setup:**
+- [AI Agent Workflow Setup](../ai-agent-workflow/README.md#integration-with-development-environments) - Environment detection and configuration
+- [Development Workflow](../ai-agent-workflow/WORKFLOW.md) - Complete development environment guide
+
 ### Testing Strategy
 - Unit tests for Nix functions
 - Integration tests for YAML generation
 - Kubernetes manifest validation
 - End-to-end deployment testing
+
+**🔗 Testing Integration:**
+- [Testing Context](../ai-agent-workflow/context/create-nix-helm-generator-kickoff-testing.md) - Current testing status and results
+- [AI Agent Workflow Testing Guide](../ai-agent-workflow/WORKFLOW.md#testing-agent) - Testing agent responsibilities
 
 ## Success Metrics
 
