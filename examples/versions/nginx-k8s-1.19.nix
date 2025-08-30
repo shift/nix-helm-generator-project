@@ -2,13 +2,13 @@
 
 let
   # Import the Nix Helm Generator module
-  nixHelm = import ../../lib/default.nix { inherit lib; };
+  nixHelm = import ../../lib {};
 
   # Nginx configuration for Kubernetes 1.19
   nginxConfig = {
     name = "nginx-k8s-1-19";
     version = "1.0.0";
-    description = "Nginx for Kubernetes 1.19 (uses networking.k8s.io/v1beta1)";
+    description = "Nginx for Kubernetes 1.19 (uses networking.k8s.io/v1)";
     appVersion = "1.21.0";
     kubernetesVersion = "1.19.0";  # This will trigger v1beta1 API versions
 

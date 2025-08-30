@@ -2,7 +2,7 @@
 
 let
   # Import the Nix Helm Generator module
-  nixHelm = import ../../lib/default.nix { inherit lib; };
+  nixHelm = import ../../lib {};
 
   # Nginx configuration for Kubernetes 1.25
   nginxConfig = {

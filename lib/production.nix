@@ -141,14 +141,17 @@ let
             deployment = resources.deployment;
             containers = applyResources appConfig deployment.spec.template.spec.containers;
             containersWithHealth = applyHealthChecks appConfig containers;
-            enhancedSpec = applySecurityContext appConfig deployment.spec.template.spec;
+            # Create spec with enhanced containers first
+            specWithEnhancedContainers = deployment.spec.template.spec // {
+              containers = containersWithHealth;
+            };
+            # Then apply security context to the spec with enhanced containers
+            enhancedSpec = applySecurityContext appConfig specWithEnhancedContainers;
           in
           deployment // {
             spec = deployment.spec // {
               template = deployment.spec.template // {
-                spec = enhancedSpec // {
-                  containers = containersWithHealth;
-                };
+                spec = enhancedSpec;
               };
             };
           }
