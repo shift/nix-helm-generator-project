@@ -32,6 +32,10 @@ nix build .#simple-app
 
 - **[Project Kickoff Document](./nix-helm-generator-kickoff.md)**: Complete project overview, architecture, and implementation roadmap
 - **[AI Agent Workflow](./ai-agent-workflow/README.md)**: Development workflow and task management system
+- **[API Reference](./docs/API_REFERENCE.md)**: Complete API documentation for all functions
+- **[Usage Guide](./docs/USAGE_GUIDE.md)**: Step-by-step usage instructions and examples
+- **[Best Practices](./docs/BEST_PRACTICES.md)**: Recommended practices for production use
+- **[Troubleshooting](./docs/TROUBLESHOOTING.md)**: Common issues and debugging techniques
 
 ## Project Structure
 
@@ -52,12 +56,11 @@ nix-helm-generator/
 └── nix-helm-generator-kickoff.md  # Project kickoff document
 ```
 
-## Usage Examples
+## Quick Examples
 
 ### Simple Application
 
 ```nix
-# examples/simple-app.nix
 let
   nix-helm-generator = import ./lib;
 in
@@ -78,7 +81,6 @@ nix-helm-generator.mkChart {
 ### Production Application
 
 ```nix
-# examples/production-app.nix
 let
   nix-helm-generator = import ./lib;
 in
@@ -91,7 +93,6 @@ nix-helm-generator.mkChart {
     replicas = 5;
     ports = [8080];
 
-    # Production features
     production = {
       pdb = {
         enabled = true;
@@ -111,14 +112,10 @@ nix-helm-generator.mkChart {
       };
     };
   };
-
-  # Multi-environment support
-  environments = {
-    staging = { app.replicas = 2; };
-    production = { app.replicas = 10; };
-  };
 }
 ```
+
+For comprehensive examples and detailed usage instructions, see the **[Usage Guide](./docs/USAGE_GUIDE.md)**.
 
 ## Development
 
