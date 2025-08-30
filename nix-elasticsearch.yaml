@@ -1,0 +1,75 @@
+# Chart.yaml
+{"annotations":{},"apiVersion":"v2","appVersion":"8.11.0","dependencies":[],"description":"A Helm chart for Elasticsearch search and analytics engine","home":"https://elastic.co","keywords":["elasticsearch","search","analytics","logstash","kibana"],"maintainers":[{"email":"info@elastic.co","name":"Elastic"}],"name":"elasticsearch","sources":["https://github.com/elastic/elasticsearch"],"type":"application","version":"1.0.0"}
+
+---
+# values.yaml
+{}
+---
+# templates/
+
+---
+{"apiVersion":"v1","data":{"elasticsearch.yml":"cluster.name: elasticsearch\
+node.name: elasticsearch-node\
+path.data: /usr/share/elasticsearch/data\
+path.logs: /usr/share/elasticsearch/logs\
+network.host: 0.0.0.0\
+http.port: 9200\
+discovery.type: single-node\
+xpack.security.enabled: false\
+xpack.monitoring.enabled: false\
+xpack.graph.enabled: false\
+xpack.watcher.enabled: false\
+xpack.ml.enabled: false\
+\
+# Memory and performance settings\
+bootstrap.memory_lock: false\
+indices.query.bool.max_clause_count: 1024\
+indices.memory.index_buffer_size: 10%\
+indices.memory.min_index_buffer_size: 48mb\
+indices.memory.max_index_buffer_size: 10%\
+\
+# Thread pools\
+thread_pool.search.size: 3\
+thread_pool.search.queue_size: 1000\
+thread_pool.index.size: 1\
+thread_pool.index.queue_size: 1000\
+thread_pool.bulk.size: 2\
+thread_pool.bulk.queue_size: 1000\
+\
+# Circuit breaker\
+indices.breaker.total.limit: 70%\
+indices.breaker.fielddata.limit: 60%\
+indices.breaker.request.limit: 60%\
+\
+# Logging\
+logger.level: INFO\
+logger.org.elasticsearch.discovery: DEBUG\
+","jvm.options":"-Xms1g\
+-Xmx1g\
+-XX:+UseG1GC\
+-XX:MaxGCPauseMillis=200\
+-XX:+UnlockExperimentalVMOptions\
+-XX:+UseCGroupMemoryLimitForHeap\
+-XX:MaxRAMFraction=1\
+-XX:+PrintGCDetails\
+-XX:+PrintGCDateStamps\
+-XX:+PrintTenuringDistribution\
+-XX:+PrintGCApplicationStoppedTime\
+-XX:+UseGCLogFileRotation\
+-XX:NumberOfGCLogFiles=32\
+-XX:GCLogFileSize=64m\
+-Xloggc:/usr/share/elasticsearch/logs/gc.log\
+-XX:+HeapDumpOnOutOfMemoryError\
+-XX:HeapDumpPath=/usr/share/elasticsearch/logs\
+-XX:ErrorFile=/usr/share/elasticsearch/logs/hs_err_pid%p.log\
+-XX:+PrintClassHistogram\
+"},"kind":"ConfigMap","metadata":{"labels":{"app":"elasticsearch"},"name":"elasticsearch-config","namespace":"default"}}
+---
+{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"labels":{"app":"elasticsearch"},"name":"elasticsearch","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"elasticsearch"}},"template":{"metadata":{"labels":{"app":"elasticsearch"}},"spec":{"containers":[{"env":[{"name":"ES_JAVA_OPTS","value":"-Xms1g -Xmx1g"},{"name":"discovery","value":{"type":"single-node"}},{"name":"xpack","value":{"graph":{"enabled":"false"},"ml":{"enabled":"false"},"monitoring":{"enabled":"false"},"security":{"enabled":"false"},"watcher":{"enabled":"false"}}}],"image":"elasticsearch:8.11.0","livenessProbe":{"httpGet":{"path":"/_cluster/health","port":9200},"initialDelaySeconds":60,"periodSeconds":30},"name":"elasticsearch","ports":[{"containerPort":9200},{"containerPort":9300}],"readinessProbe":{"httpGet":{"path":"/_cluster/health","port":9200},"initialDelaySeconds":30,"periodSeconds":10},"resources":{"limits":{"cpu":"2000m","memory":"4Gi"},"requests":{"cpu":"1000m","memory":"2Gi"}},"securityContext":{"allowPrivilegeEscalation":false,"readOnlyRootFilesystem":false,"runAsNonRoot":true,"runAsUser":1000}}],"securityContext":{"fsGroup":1000,"runAsGroup":1000,"runAsUser":1000}}}}}
+---
+{"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"labels":{"app":"elasticsearch"},"name":"elasticsearch-network-policy","namespace":"default"},"spec":{"egress":[{}],"ingress":[{"from":[{"podSelector":{"matchLabels":{"app":"elasticsearch-client"}}},{"namespaceSelector":{"matchLabels":{"name":"logging"}}}],"ports":[{"port":9200,"protocol":"TCP"},{"port":9300,"protocol":"TCP"}]}],"podSelector":{"matchLabels":{"app":"elasticsearch"}},"policyTypes":["Ingress","Egress"]}}
+---
+{"apiVersion":"policy/v1","kind":"PodDisruptionBudget","metadata":{"labels":{"app":"elasticsearch"},"name":"elasticsearch-pdb","namespace":"default"},"spec":{"minAvailable":1,"selector":{"matchLabels":{"app":"elasticsearch"}}}}
+---
+{"apiVersion":"v1","kind":"Service","metadata":{"labels":{"app":"elasticsearch"},"name":"elasticsearch","namespace":"default"},"spec":{"ports":[{"port":9200,"protocol":"TCP","targetPort":9200},{"port":9300,"protocol":"TCP","targetPort":9300}],"selector":{"app":"elasticsearch"},"type":"ClusterIP"}}
+

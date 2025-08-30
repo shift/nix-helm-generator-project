@@ -1,0 +1,89 @@
+# Chart.yaml
+{"annotations":{},"apiVersion":"v2","appVersion":"1.8.1","dependencies":[],"description":"A Helm chart for NGINX Ingress Controller","home":"https://kubernetes.github.io/ingress-nginx","keywords":["ingress","nginx","controller","kubernetes"],"maintainers":[{"email":"kubernetes-dev@googlegroups.com","name":"Kubernetes Authors"}],"name":"ingress-nginx","sources":["https://github.com/kubernetes/ingress-nginx"],"type":"application","version":"1.0.0"}
+
+---
+# values.yaml
+{}
+---
+# templates/
+
+---
+{"apiVersion":"v1","data":{"nginx.conf":"worker_processes auto;\
+worker_rlimit_nofile 14600;\
+\
+events {\
+  worker_connections 1024;\
+  use epoll;\
+  multi_accept on;\
+}\
+\
+http {\
+  sendfile on;\
+  tcp_nopush on;\
+  tcp_nodelay on;\
+  keepalive_timeout 65;\
+  types_hash_max_size 2048;\
+  client_max_body_size 100M;\
+\
+  include /etc/nginx/mime.types;\
+  default_type application/octet-stream;\
+\
+  log_format main '$remote_addr - $remote_user [$time_local] \\"$request\\" '\
+                  '$status $body_bytes_sent \\"$http_referer\\" '\
+                  '\\"$http_user_agent\\" \\"$http_x_forwarded_for\\"';\
+\
+  access_log /var/log/nginx/access.log main;\
+  error_log /var/log/nginx/error.log;\
+\
+  gzip on;\
+  gzip_vary on;\
+  gzip_min_length 1000;\
+  gzip_proxied any;\
+  gzip_comp_level 6;\
+  gzip_types\
+    text/plain\
+    text/css\
+    text/xml\
+    text/javascript\
+    application/json\
+    application/javascript\
+    application/xml+rss\
+    application/atom+xml\
+    image/svg+xml;\
+\
+  server {\
+    listen 80 default_server;\
+    listen [::]:80 default_server;\
+    server_name _;\
+    return 404;\
+  }\
+\
+  server {\
+    listen 443 ssl http2 default_server;\
+    listen [::]:443 ssl http2 default_server;\
+    server_name _;\
+    return 404;\
+  }\
+}\
+","tcp-services-configmap.yaml":"apiVersion: v1\
+kind: ConfigMap\
+metadata:\
+  name: tcp-services\
+  namespace: ingress-nginx\
+data: {}\
+","udp-services-configmap.yaml":"apiVersion: v1\
+kind: ConfigMap\
+metadata:\
+  name: udp-services\
+  namespace: ingress-nginx\
+data: {}\
+"},"kind":"ConfigMap","metadata":{"labels":{"app":"ingress-nginx"},"name":"ingress-nginx-config","namespace":"default"}}
+---
+{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"labels":{"app":"ingress-nginx"},"name":"ingress-nginx","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"ingress-nginx"}},"template":{"metadata":{"labels":{"app":"ingress-nginx"}},"spec":{"containers":[{"env":[{"name":"POD_NAME","value":"ingress-nginx-controller"},{"name":"POD_NAMESPACE","value":"ingress-nginx"}],"image":"k8s.gcr.io/ingress-nginx/controller:v1.8.1","livenessProbe":{"httpGet":{"path":"/healthz","port":10254},"initialDelaySeconds":10,"periodSeconds":30},"name":"ingress-nginx","ports":[{"containerPort":80},{"containerPort":443}],"readinessProbe":{"httpGet":{"path":"/healthz","port":10254},"initialDelaySeconds":10,"periodSeconds":10},"resources":{"limits":{"cpu":"500m","memory":"512Mi"},"requests":{"cpu":"100m","memory":"128Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"runAsUser":101}}],"securityContext":{"fsGroup":101,"runAsGroup":101,"runAsUser":101}}}}}
+---
+{"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"labels":{"app":"ingress-nginx"},"name":"ingress-nginx-network-policy","namespace":"default"},"spec":{"egress":[{}],"ingress":[{"from":[],"ports":[{"port":80,"protocol":"TCP"},{"port":443,"protocol":"TCP"}]}],"podSelector":{"matchLabels":{"app":"ingress-nginx"}},"policyTypes":["Ingress","Egress"]}}
+---
+{"apiVersion":"policy/v1","kind":"PodDisruptionBudget","metadata":{"labels":{"app":"ingress-nginx"},"name":"ingress-nginx-pdb","namespace":"default"},"spec":{"minAvailable":"50%","selector":{"matchLabels":{"app":"ingress-nginx"}}}}
+---
+{"apiVersion":"v1","kind":"Service","metadata":{"labels":{"app":"ingress-nginx"},"name":"ingress-nginx","namespace":"default"},"spec":{"ports":[{"port":80,"protocol":"TCP","targetPort":80},{"port":443,"protocol":"TCP","targetPort":443}],"selector":{"app":"ingress-nginx"},"type":"ClusterIP"}}
+

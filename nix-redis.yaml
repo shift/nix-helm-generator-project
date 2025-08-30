@@ -1,0 +1,65 @@
+# Chart.yaml
+{"annotations":{},"apiVersion":"v2","appVersion":"7.2.0","dependencies":[],"description":"A Helm chart for Redis in-memory database","home":"https://redis.io","keywords":["redis","database","cache","key-value"],"maintainers":[{"email":"redis@redis.io","name":"Redis Labs"}],"name":"redis","sources":["https://github.com/redis/redis"],"type":"application","version":"1.0.0"}
+
+---
+# values.yaml
+{}
+---
+# templates/
+
+---
+{"apiVersion":"v1","data":{"redis.conf":"bind 0.0.0.0\
+port 6379\
+timeout 0\
+tcp-keepalive 300\
+daemonize no\
+supervised no\
+loglevel notice\
+databases 16\
+save 900 1\
+save 300 10\
+save 60 10000\
+stop-writes-on-bgsave-error yes\
+rdbcompression yes\
+rdbchecksum yes\
+dbfilename dump.rdb\
+dir /data\
+slave-serve-stale-data yes\
+slave-read-only yes\
+repl-diskless-sync no\
+repl-diskless-sync-delay 5\
+slave-priority 100\
+appendonly yes\
+appendfilename \\"appendonly.aof\\"\
+appendfsync everysec\
+no-appendfsync-on-rewrite no\
+auto-aof-rewrite-percentage 100\
+auto-aof-rewrite-min-size 64mb\
+lua-time-limit 5000\
+slowlog-log-slower-than 10000\
+slowlog-max-len 128\
+notify-keyspace-events \\"\\"\
+hash-max-ziplist-entries 512\
+hash-max-ziplist-value 64\
+list-max-ziplist-size -2\
+list-compress-depth 0\
+set-max-intset-entries 512\
+zset-max-ziplist-entries 128\
+zset-max-ziplist-value 64\
+hll-sparse-max-bytes 3000\
+activerehashing yes\
+client-output-buffer-limit normal 0 0 0\
+client-output-buffer-limit slave 256mb 64mb 60\
+client-output-buffer-limit pubsub 32mb 8mb 60\
+hz 10\
+aof-rewrite-incremental-fsync yes\
+"},"kind":"ConfigMap","metadata":{"labels":{"app":"redis"},"name":"redis-config","namespace":"default"}}
+---
+{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"labels":{"app":"redis"},"name":"redis","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"redis"}},"template":{"metadata":{"labels":{"app":"redis"}},"spec":{"containers":[{"env":[{"name":"REDIS_DISABLE_COMMANDS","value":"FLUSHDB,FLUSHALL"},{"name":"REDIS_PASSWORD","value":"changeme"}],"image":"redis:7.2.0","livenessProbe":{"exec":{"command":["redis-cli","ping"]},"initialDelaySeconds":30,"periodSeconds":30},"name":"redis","ports":[{"containerPort":6379}],"readinessProbe":{"exec":{"command":["redis-cli","ping"]},"initialDelaySeconds":5,"periodSeconds":10},"resources":{"limits":{"cpu":"1000m","memory":"1Gi"},"requests":{"cpu":"200m","memory":"256Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"readOnlyRootFilesystem":false,"runAsNonRoot":true,"runAsUser":999}}],"securityContext":{"fsGroup":999,"runAsGroup":999,"runAsUser":999}}}}}
+---
+{"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"labels":{"app":"redis"},"name":"redis-network-policy","namespace":"default"},"spec":{"egress":[{}],"ingress":[{"from":[{"podSelector":{"matchLabels":{"app":"redis-client"}}}],"ports":[{"port":6379,"protocol":"TCP"}]}],"podSelector":{"matchLabels":{"app":"redis"}},"policyTypes":["Ingress","Egress"]}}
+---
+{"apiVersion":"policy/v1","kind":"PodDisruptionBudget","metadata":{"labels":{"app":"redis"},"name":"redis-pdb","namespace":"default"},"spec":{"minAvailable":1,"selector":{"matchLabels":{"app":"redis"}}}}
+---
+{"apiVersion":"v1","kind":"Service","metadata":{"labels":{"app":"redis"},"name":"redis","namespace":"default"},"spec":{"ports":[{"port":6379,"protocol":"TCP","targetPort":6379}],"selector":{"app":"redis"},"type":"ClusterIP"}}
+

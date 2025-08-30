@@ -1,0 +1,61 @@
+# Chart.yaml
+{"annotations":{},"apiVersion":"v2","appVersion":"v1.13.0","dependencies":[],"description":"A Helm chart for cert-manager certificate management","home":"https://cert-manager.io","keywords":["cert-manager","certificate","tls","letsencrypt","kubernetes"],"maintainers":[{"email":"cert-manager-maintainers@googlegroups.com","name":"The cert-manager Authors"}],"name":"cert-manager","sources":["https://github.com/cert-manager/cert-manager"],"type":"application","version":"1.0.0"}
+
+---
+# values.yaml
+{}
+---
+# templates/
+
+---
+{"apiVersion":"v1","data":{"certificate-example.yaml":"apiVersion: cert-manager.io/v1\
+kind: Certificate\
+metadata:\
+  name: example-tls\
+  namespace: default\
+spec:\
+  secretName: example-tls\
+  issuerRef:\
+    name: letsencrypt-prod\
+    kind: ClusterIssuer\
+  dnsNames:\
+  - example.com\
+  - www.example.com\
+","cluster-issuer-letsencrypt-prod.yaml":"apiVersion: cert-manager.io/v1\
+kind: ClusterIssuer\
+metadata:\
+  name: letsencrypt-prod\
+spec:\
+  acme:\
+    server: https://acme-v02.api.letsencrypt.org/directory\
+    email: admin@example.com\
+    privateKeySecretRef:\
+      name: letsencrypt-prod\
+    solvers:\
+    - http01:\
+        ingress:\
+          class: nginx\
+","cluster-issuer-letsencrypt-staging.yaml":"apiVersion: cert-manager.io/v1\
+kind: ClusterIssuer\
+metadata:\
+  name: letsencrypt-staging\
+spec:\
+  acme:\
+    server: https://acme-staging-v02.api.letsencrypt.org/directory\
+    email: admin@example.com\
+    privateKeySecretRef:\
+      name: letsencrypt-staging\
+    solvers:\
+    - http01:\
+        ingress:\
+          class: nginx\
+"},"kind":"ConfigMap","metadata":{"labels":{"app":"cert-manager"},"name":"cert-manager-config","namespace":"default"}}
+---
+{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"labels":{"app":"cert-manager"},"name":"cert-manager","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"cert-manager"}},"template":{"metadata":{"labels":{"app":"cert-manager"}},"spec":{"containers":[{"env":[{"name":"POD_NAMESPACE","value":"cert-manager"}],"image":"cert-manager/cert-manager-controller:v1.13.0","livenessProbe":{"httpGet":{"path":"/healthz","port":9402},"initialDelaySeconds":30,"periodSeconds":30},"name":"cert-manager","ports":[{"containerPort":9402}],"readinessProbe":{"httpGet":{"path":"/healthz","port":9402},"initialDelaySeconds":5,"periodSeconds":10},"resources":{"limits":{"cpu":"500m","memory":"512Mi"},"requests":{"cpu":"100m","memory":"128Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"runAsUser":65534}}],"securityContext":{"fsGroup":65534,"runAsGroup":65534,"runAsUser":65534}}}}}
+---
+{"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"labels":{"app":"cert-manager"},"name":"cert-manager-network-policy","namespace":"default"},"spec":{"egress":[{}],"ingress":[{"from":[{"namespaceSelector":{"matchLabels":{"name":"ingress-nginx"}}},{"podSelector":{"matchLabels":{"app":"webhook"}}}],"ports":[{"port":9402,"protocol":"TCP"}]}],"podSelector":{"matchLabels":{"app":"cert-manager"}},"policyTypes":["Ingress","Egress"]}}
+---
+{"apiVersion":"policy/v1","kind":"PodDisruptionBudget","metadata":{"labels":{"app":"cert-manager"},"name":"cert-manager-pdb","namespace":"default"},"spec":{"minAvailable":"50%","selector":{"matchLabels":{"app":"cert-manager"}}}}
+---
+{"apiVersion":"v1","kind":"Service","metadata":{"labels":{"app":"cert-manager"},"name":"cert-manager","namespace":"default"},"spec":{"ports":[{"port":9402,"protocol":"TCP","targetPort":9402}],"selector":{"app":"cert-manager"},"type":"ClusterIP"}}
+

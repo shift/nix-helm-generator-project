@@ -1,0 +1,94 @@
+# Chart.yaml
+{"annotations":{},"apiVersion":"v2","appVersion":"2.45.0","dependencies":[],"description":"A Helm chart for Prometheus monitoring system","home":"https://prometheus.io","keywords":["prometheus","monitoring","metrics","observability"],"maintainers":[{"email":"prometheus-developers@googlegroups.com","name":"The Prometheus Authors"}],"name":"prometheus","sources":["https://github.com/prometheus/prometheus"],"type":"application","version":"1.0.0"}
+
+---
+# values.yaml
+{}
+---
+# templates/
+
+---
+{"apiVersion":"v1","data":{"prometheus.yml":"global:\
+  scrape_interval: 15s\
+  evaluation_interval: 15s\
+\
+rule_files:\
+  # - \\"first_rules.yml\\"\
+  # - \\"second_rules.yml\\"\
+\
+scrape_configs:\
+  - job_name: 'prometheus'\
+    static_configs:\
+      - targets: ['localhost:9090']\
+\
+  - job_name: 'node-exporter'\
+    static_configs:\
+      - targets: ['node-exporter:9100']\
+\
+  - job_name: 'kube-state-metrics'\
+    static_configs:\
+      - targets: ['kube-state-metrics:8080']\
+\
+  - job_name: 'kubernetes-apiservers'\
+    kubernetes_sd_configs:\
+      - role: endpoints\
+    scheme: https\
+    tls_config:\
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token\
+    relabel_configs:\
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]\
+        action: keep\
+        regex: default;kubernetes;https\
+\
+  - job_name: 'kubernetes-nodes'\
+    kubernetes_sd_configs:\
+      - role: node\
+    scheme: https\
+    tls_config:\
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token\
+    relabel_configs:\
+      - action: labelmap\
+        regex: __meta_kubernetes_node_label_(.+)\
+      - target_label: __address__\
+        replacement: kubernetes.default.svc:443\
+      - source_labels: [__meta_kubernetes_node_name]\
+        regex: (.+)\
+        target_label: __metrics_path__\
+        replacement: /api/v1/nodes/$1/proxy/metrics\
+\
+  - job_name: 'kubernetes-pods'\
+    kubernetes_sd_configs:\
+      - role: pod\
+    relabel_configs:\
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]\
+        action: keep\
+        regex: true\
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]\
+        action: replace\
+        target_label: __metrics_path__\
+        regex: (.+)\
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]\
+        action: replace\
+        regex: ([^:]+)(?::\\\\d+)?;(\\\\d+)\
+        replacement: $1:$2\
+        target_label: __address__\
+      - action: labelmap\
+        regex: __meta_kubernetes_pod_label_(.+)\
+      - source_labels: [__meta_kubernetes_namespace]\
+        action: replace\
+        target_label: namespace\
+      - source_labels: [__meta_kubernetes_pod_name]\
+        action: replace\
+        target_label: pod\
+"},"kind":"ConfigMap","metadata":{"labels":{"app":"prometheus"},"name":"prometheus-config","namespace":"default"}}
+---
+{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"labels":{"app":"prometheus"},"name":"prometheus","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"prometheus"}},"template":{"metadata":{"labels":{"app":"prometheus"}},"spec":{"containers":[{"env":[{"name":"PROMETHEUS_CONFIG","value":"/etc/prometheus/prometheus.yml"},{"name":"PROMETHEUS_STORAGE_PATH","value":"/prometheus"}],"image":"prom/prometheus:v2.45.0","livenessProbe":{"httpGet":{"path":"/-/healthy","port":9090},"initialDelaySeconds":30,"periodSeconds":30},"name":"prometheus","ports":[{"containerPort":9090}],"readinessProbe":{"httpGet":{"path":"/-/ready","port":9090},"initialDelaySeconds":30,"periodSeconds":10},"resources":{"limits":{"cpu":"2000m","memory":"4Gi"},"requests":{"cpu":"500m","memory":"1Gi"}},"securityContext":{"allowPrivilegeEscalation":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"runAsUser":65534}}],"securityContext":{"fsGroup":65534,"runAsGroup":65534,"runAsUser":65534}}}}}
+---
+{"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"labels":{"app":"prometheus"},"name":"prometheus-network-policy","namespace":"default"},"spec":{"egress":[{}],"ingress":[{"from":[{"podSelector":{"matchLabels":{"app":"prometheus-client"}}},{"namespaceSelector":{"matchLabels":{"name":"monitoring"}}}],"ports":[{"port":9090,"protocol":"TCP"}]}],"podSelector":{"matchLabels":{"app":"prometheus"}},"policyTypes":["Ingress","Egress"]}}
+---
+{"apiVersion":"policy/v1","kind":"PodDisruptionBudget","metadata":{"labels":{"app":"prometheus"},"name":"prometheus-pdb","namespace":"default"},"spec":{"minAvailable":"50%","selector":{"matchLabels":{"app":"prometheus"}}}}
+---
+{"apiVersion":"v1","kind":"Service","metadata":{"labels":{"app":"prometheus"},"name":"prometheus","namespace":"default"},"spec":{"ports":[{"port":9090,"protocol":"TCP","targetPort":9090}],"selector":{"app":"prometheus"},"type":"ClusterIP"}}
+

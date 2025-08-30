@@ -1,0 +1,62 @@
+# Chart.yaml
+{"annotations":{},"apiVersion":"v2","appVersion":"15.4","dependencies":[],"description":"A Helm chart for PostgreSQL database","home":"https://postgresql.org","keywords":["postgres","postgresql","database","sql"],"maintainers":[{"email":"pgsql-bugs@postgresql.org","name":"PostgreSQL Global Development Group"}],"name":"postgres","sources":["https://github.com/postgres/postgres"],"type":"application","version":"1.0.0"}
+
+---
+# values.yaml
+{}
+---
+# templates/
+
+---
+{"apiVersion":"v1","data":{"pg_hba.conf":"# TYPE  DATABASE        USER            ADDRESS                 METHOD\
+local   all             postgres                                trust\
+local   all             all                                     trust\
+host    all             all             127.0.0.1/32            trust\
+host    all             all             ::1/128                 trust\
+host    all             all             0.0.0.0/0               md5\
+","postgresql.conf":"# Connection settings\
+listen_addresses = '*'\
+port = 5432\
+max_connections = 100\
+\
+# Memory settings\
+shared_buffers = 128MB\
+effective_cache_size = 1GB\
+work_mem = 4MB\
+maintenance_work_mem = 64MB\
+\
+# Checkpoint settings\
+checkpoint_segments = 32\
+checkpoint_completion_target = 0.9\
+wal_buffers = 16MB\
+default_statistics_target = 100\
+\
+# Logging\
+log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '\
+log_statement = 'ddl'\
+log_duration = on\
+log_lock_waits = on\
+log_min_duration_statement = 1000\
+\
+# Autovacuum\
+autovacuum = on\
+autovacuum_max_workers = 3\
+autovacuum_naptime = 20s\
+autovacuum_vacuum_threshold = 50\
+autovacuum_analyze_threshold = 50\
+autovacuum_vacuum_scale_factor = 0.02\
+autovacuum_analyze_scale_factor = 0.01\
+\
+# Other settings\
+random_page_cost = 1.1\
+effective_io_concurrency = 200\
+"},"kind":"ConfigMap","metadata":{"labels":{"app":"postgres"},"name":"postgres-config","namespace":"default"}}
+---
+{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"labels":{"app":"postgres"},"name":"postgres","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"postgres"}},"template":{"metadata":{"labels":{"app":"postgres"}},"spec":{"containers":[{"env":[{"name":"PGDATA","value":"/var/lib/postgresql/data/pgdata"},{"name":"POSTGRES_DB","value":"postgres"},{"name":"POSTGRES_PASSWORD","value":"changeme"},{"name":"POSTGRES_USER","value":"postgres"}],"image":"postgres:15.4","livenessProbe":{"exec":{"command":["pg_isready","-U","postgres"]},"initialDelaySeconds":30,"periodSeconds":30},"name":"postgres","ports":[{"containerPort":5432}],"readinessProbe":{"exec":{"command":["pg_isready","-U","postgres"]},"initialDelaySeconds":15,"periodSeconds":10},"resources":{"limits":{"cpu":"2000m","memory":"2Gi"},"requests":{"cpu":"500m","memory":"512Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"readOnlyRootFilesystem":false,"runAsNonRoot":true,"runAsUser":999}}],"securityContext":{"fsGroup":999,"runAsGroup":999,"runAsUser":999}}}}}
+---
+{"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"labels":{"app":"postgres"},"name":"postgres-network-policy","namespace":"default"},"spec":{"egress":[{}],"ingress":[{"from":[{"podSelector":{"matchLabels":{"app":"postgres-client"}}}],"ports":[{"port":5432,"protocol":"TCP"}]}],"podSelector":{"matchLabels":{"app":"postgres"}},"policyTypes":["Ingress","Egress"]}}
+---
+{"apiVersion":"policy/v1","kind":"PodDisruptionBudget","metadata":{"labels":{"app":"postgres"},"name":"postgres-pdb","namespace":"default"},"spec":{"minAvailable":1,"selector":{"matchLabels":{"app":"postgres"}}}}
+---
+{"apiVersion":"v1","kind":"Service","metadata":{"labels":{"app":"postgres"},"name":"postgres","namespace":"default"},"spec":{"ports":[{"port":5432,"protocol":"TCP","targetPort":5432}],"selector":{"app":"postgres"},"type":"ClusterIP"}}
+

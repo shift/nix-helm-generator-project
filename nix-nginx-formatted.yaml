@@ -1,0 +1,38 @@
+Nix Helm Generator Development Environment
+Available commands:
+  nix build .#nix-helm-generator
+  nix develop
+# Chart.yaml
+{"annotations":{},"apiVersion":"v2","appVersion":"1.25.0","dependencies":[],"description":"A Helm chart for Nginx web server","home":"https://nginx.org","keywords":["nginx","web-server","http","proxy"],"maintainers":[{"email":"nginx@nginx.org","name":"Nginx Maintainers"}],"name":"nginx","sources":["https://github.com/nginx/nginx"],"type":"application","version":"1.0.0"}
+
+---
+# values.yaml
+{}
+---
+# templates/
+
+---
+{"apiVersion":"v1","data":{"nginx.conf":"events {\
+  worker_connections 1024;\
+}\
+http {\
+  server {\
+    listen 80;\
+    location / {\
+      return 200 \\"Hello from Nginx!\\\
+\\";\
+    }\
+  }\
+}\
+"},"kind":"ConfigMap","metadata":{"labels":{"app":"nginx"},"name":"nginx-config","namespace":"default"}}
+---
+{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"labels":{"app":"nginx"},"name":"nginx","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"nginx"}},"template":{"metadata":{"labels":{"app":"nginx"}},"spec":{"containers":[{"env":[{"name":"NGINX_PORT","value":"80"}],"image":"nginx:1.25.0","livenessProbe":{"httpGet":{"path":"/","port":80},"initialDelaySeconds":30,"periodSeconds":30},"name":"nginx","ports":[{"containerPort":80},{"containerPort":443}],"readinessProbe":{"httpGet":{"path":"/","port":80},"initialDelaySeconds":5,"periodSeconds":10},"resources":{"limits":{"cpu":"500m","memory":"512Mi"},"requests":{"cpu":"100m","memory":"128Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"runAsUser":101}}],"securityContext":{"fsGroup":101,"runAsGroup":101,"runAsUser":101}}}}}
+---
+{"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{"cert-manager.io/cluster-issuer":"letsencrypt-prod","kubernetes.io/ingress.class":"nginx"},"labels":{"app":"nginx"},"name":"nginx","namespace":"default"},"spec":{"ingressClassName":null,"rules":[{"host":"nginx.example.com","http":{"paths":[{"backend":{"service":{"name":"nginx","port":{"number":80}}},"path":"/","pathType":"Prefix"}]}}],"tls":[{"hosts":["nginx.example.com"],"secretName":"nginx-tls"}]}}
+---
+{"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"labels":{"app":"nginx"},"name":"nginx-network-policy","namespace":"default"},"spec":{"egress":[{}],"ingress":[{"from":[{"namespaceSelector":{"matchLabels":{"name":"ingress-nginx"}}}],"ports":[{"port":80,"protocol":"TCP"},{"port":443,"protocol":"TCP"}]}],"podSelector":{"matchLabels":{"app":"nginx"}},"policyTypes":["Ingress","Egress"]}}
+---
+{"apiVersion":"policy/v1","kind":"PodDisruptionBudget","metadata":{"labels":{"app":"nginx"},"name":"nginx-pdb","namespace":"default"},"spec":{"minAvailable":"50%","selector":{"matchLabels":{"app":"nginx"}}}}
+---
+{"apiVersion":"v1","kind":"Service","metadata":{"labels":{"app":"nginx"},"name":"nginx","namespace":"default"},"spec":{"ports":[{"port":80,"protocol":"TCP","targetPort":80},{"port":443,"protocol":"TCP","targetPort":443}],"selector":{"app":"nginx"},"type":"ClusterIP"}}
+
