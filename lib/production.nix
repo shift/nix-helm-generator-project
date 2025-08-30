@@ -1,6 +1,24 @@
 { lib }:
 
 let
+  # API Version detection and compatibility (shared with resources.nix)
+  getApiVersions = config:
+    let
+      k8sVersion = config.kubernetesVersion or "1.25.0";
+      versionParts = lib.splitString "." k8sVersion;
+      major = lib.toInt (lib.head versionParts);
+      minor = lib.toInt (lib.head (lib.tail versionParts));
+    in
+    {
+      inherit k8sVersion major minor;
+
+      # API version mappings based on Kubernetes version
+      networkingApiVersion = if minor >= 19 then "networking.k8s.io/v1" else "networking.k8s.io/v1beta1";
+      policyApiVersion = if minor >= 21 then "policy/v1" else "policy/v1beta1";
+      appsApiVersion = "apps/v1";  # Stable since 1.9
+      coreApiVersion = "v1";
+    };
+
   # Generate Pod Disruption Budget
   mkPDB = config: appConfig:
     let
@@ -9,9 +27,10 @@ let
       minAvailable = pdbConfig.minAvailable or "50%";
       maxUnavailable = pdbConfig.maxUnavailable or null;
       labels = config.labels or { app = config.name; };
+      apiVersions = getApiVersions config;
     in
     if !enabled then null else {
-      apiVersion = "policy/v1";
+      apiVersion = apiVersions.policyApiVersion;
       kind = "PodDisruptionBudget";
       metadata = {
         name = "${config.name}-pdb";
@@ -77,9 +96,10 @@ let
       networkConfig = appConfig.production.networkPolicy or {};
       enabled = networkConfig.enabled or false;
       labels = config.labels or { app = config.name; };
+      apiVersions = getApiVersions config;
     in
     if !enabled then null else {
-      apiVersion = "networking.k8s.io/v1";
+      apiVersion = apiVersions.networkingApiVersion;
       kind = "NetworkPolicy";
       metadata = {
         name = "${config.name}-network-policy";

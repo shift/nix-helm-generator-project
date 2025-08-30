@@ -1,6 +1,24 @@
 { lib }:
 
 let
+  # API Version detection and compatibility
+  getApiVersions = config:
+    let
+      k8sVersion = config.kubernetesVersion or "1.25.0";
+      versionParts = lib.splitString "." k8sVersion;
+      major = lib.toInt (lib.head versionParts);
+      minor = lib.toInt (lib.head (lib.tail versionParts));
+    in
+    {
+      inherit k8sVersion major minor;
+
+      # API version mappings based on Kubernetes version
+      networkingApiVersion = if minor >= 19 then "networking.k8s.io/v1" else "networking.k8s.io/v1beta1";
+      policyApiVersion = if minor >= 21 then "policy/v1" else "policy/v1beta1";
+      appsApiVersion = "apps/v1";  # Stable since 1.9
+      coreApiVersion = "v1";
+    };
+
   # Generate Deployment resource
   mkDeployment = config: appConfig:
     let
@@ -11,9 +29,10 @@ let
       ports = appConfig.ports or [];
       env = appConfig.env or {};
       labels = config.labels or { app = name; };
+      apiVersions = getApiVersions config;
     in
     {
-      apiVersion = "apps/v1";
+      apiVersion = apiVersions.appsApiVersion;
       kind = "Deployment";
       metadata = {
         name = name;
@@ -100,9 +119,10 @@ let
       hosts = ingressConfig.hosts or [];
       tls = ingressConfig.tls or [];
       labels = config.labels or { app = name; };
+      apiVersions = getApiVersions config;
     in
     if !enabled then null else {
-      apiVersion = "networking.k8s.io/v1";
+      apiVersion = apiVersions.networkingApiVersion;
       kind = "Ingress";
       metadata = {
         name = name;
