@@ -1,0 +1,63 @@
+# Chart.yaml
+apiVersion: v2
+name: test-app
+description: Test application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+---
+# values.yaml
+{}
+
+---
+# templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app
+  namespace: default
+  labels:
+    app: test-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+      - name: test-app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        - containerPort: 443
+        env:
+        - name: APP_ENV
+          value: "test"
+        - name: DEBUG
+          value: "true"
+
+---
+# templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-app
+  namespace: default
+  labels:
+    app: test-app
+spec:
+  type: ClusterIP
+  selector:
+    app: test-app
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+  - port: 443
+    targetPort: 443
+    protocol: TCP
