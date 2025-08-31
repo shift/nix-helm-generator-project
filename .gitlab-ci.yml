@@ -1,0 +1,100 @@
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+
+cache:
+  paths:
+    - .nix-cache/
+
+test:
+  stage: test
+  image: nixos/nix:latest
+  before_script:
+    - nix-env -iA nixpkgs.cachix
+    - cachix use nix-community
+  script:
+    - nix flake check
+    - nix build .#validate-charts
+  artifacts:
+    reports:
+      junit: test-results.xml
+    expire_in: 1 week
+
+build:
+  stage: build
+  image: nixos/nix:latest
+  script:
+    - nix eval --json .#my-app > charts.json
+    - nix build .#dockerImage
+  artifacts:
+    paths:
+      - charts.json
+      - result/
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+
+deploy_dev:
+  stage: deploy
+  image: google/cloud-sdk:alpine
+  environment:
+    name: development
+    url: https://dev.example.com
+  before_script:
+    - echo $GCLOUD_SERVICE_KEY | base64 -d > ${HOME}/gcloud-service-key.json
+    - gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
+    - gcloud config set project $GCP_PROJECT_ID
+    - gcloud container clusters get-credentials $DEV_CLUSTER --zone $GCP_ZONE --project $GCP_PROJECT_ID
+  script:
+    - kubectl apply -f charts.json
+    - kubectl rollout status deployment/my-app
+  dependencies:
+    - build
+  only:
+    - develop
+
+deploy_staging:
+  stage: deploy
+  image: google/cloud-sdk:alpine
+  environment:
+    name: staging
+    url: https://staging.example.com
+  before_script:
+    - echo $GCLOUD_SERVICE_KEY | base64 -d > ${HOME}/gcloud-service-key.json
+    - gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
+    - gcloud config set project $GCP_PROJECT_ID
+    - gcloud container clusters get-credentials $STAGING_CLUSTER --zone $GCP_ZONE --project $GCP_PROJECT_ID
+  script:
+    - kubectl apply -f charts.json
+    - kubectl rollout status deployment/my-app
+  dependencies:
+    - build
+  only:
+    - main
+  when: manual
+
+deploy_prod:
+  stage: deploy
+  image: google/cloud-sdk:alpine
+  environment:
+    name: production
+    url: https://example.com
+  before_script:
+    - echo $GCLOUD_SERVICE_KEY | base64 -d > ${HOME}/gcloud-service-key.json
+    - gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
+    - gcloud config set project $GCP_PROJECT_ID
+    - gcloud container clusters get-credentials $PROD_CLUSTER --zone $GCP_ZONE --project $GCP_PROJECT_ID
+  script:
+    - kubectl apply -f charts.json
+    - kubectl rollout status deployment/my-app
+  dependencies:
+    - build
+  only:
+    - main
+  when: manual
