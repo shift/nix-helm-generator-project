@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: nix-helm-multi-env
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - env: dev
+        namespace: dev
+      - env: staging
+        namespace: staging
+      - env: prod
+        namespace: prod
+  template:
+    metadata:
+      name: 'nix-helm-{{env}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/your-org/nix-helm-charts
+        targetRevision: HEAD
+        path: .
+        helm:
+          valueFiles:
+          - values-{{env}}.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

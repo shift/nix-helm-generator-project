@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nix-helm-gitops-config
+  namespace: argocd
+data:
+  # GitOps workflow configuration
+  workflow.yaml: |
+    name: Nix Helm GitOps
+    on:
+      push:
+        branches: [ main ]
+        paths:
+          - 'examples/**'
+          - 'lib/**'
+          - 'flake.nix'
+    jobs:
+      update-manifests:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+          - uses: nixbuild/nix-quick-install-action@v28
+          - name: Generate and commit manifests
+            run: |
+              nix develop -c -- nix eval --json .#my-app > manifests.json
+              git add manifests.json
+              git commit -m "Auto-update manifests from Nix"
+              git push
