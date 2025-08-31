@@ -1,0 +1,81 @@
+pipeline {
+    agent any
+
+    environment {
+        NIX_PATH = 'nixpkgs=channel:nixos-unstable'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Setup Nix') {
+            steps {
+                sh 'curl -L https://nixos.org/nix/install | sh'
+                sh '. ~/.nix-profile/etc/profile.d/nix.sh'
+            }
+        }
+
+        stage('Generate Charts') {
+            steps {
+                sh 'nix develop -c -- nix eval --json .#my-app > charts.json'
+                archiveArtifacts artifacts: 'charts.json', fingerprint: true
+            }
+        }
+
+        stage('Validate Charts') {
+            steps {
+                sh 'nix develop -c -- nix run .#validate-charts'
+            }
+        }
+
+        stage('Deploy to Dev') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                sh 'kubectl config use-context dev-cluster'
+                sh 'kubectl apply -f charts.json'
+            }
+        }
+
+        stage('Deploy to Staging') {
+            when {
+                branch 'main'
+            }
+            steps {
+                sh 'kubectl config use-context staging-cluster'
+                sh 'kubectl apply -f charts.json'
+            }
+        }
+
+        stage('Deploy to Production') {
+            when {
+                branch 'main'
+                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+            }
+            steps {
+                timeout(time: 15, unit: 'MINUTES') {
+                    input message: 'Deploy to Production?'
+                }
+                sh 'kubectl config use-context prod-cluster'
+                sh 'kubectl apply -f charts.json'
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}
