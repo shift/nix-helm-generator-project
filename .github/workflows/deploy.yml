@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: nixbuild/nix-quick-install-action@v28
       - name: Generate Charts
-        run: nix develop -c -- nix eval --json .#my-app > charts.json
+        run: nix develop -c -- nix run .#my-app > charts.json
       - name: Deploy to Kubernetes
         uses: azure/k8s-deploy@v4
         with:

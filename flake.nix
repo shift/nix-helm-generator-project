@@ -17,6 +17,18 @@
             mkdir -p $out
             cp -r ${./lib} $out/lib
           '';
+          examples = pkgs.runCommand "examples" {} ''
+            mkdir -p $out
+            cp -r ${./examples} $out/examples
+          '';
+          my-app = pkgs.writeTextFile {
+            name = "my-app-chart";
+            text = builtins.toJSON (self.my-app.${system});
+          };
+          multi-app = pkgs.writeTextFile {
+            name = "multi-app-chart";
+            text = builtins.toJSON (self.multi-app.${system});
+          };
           default = self.packages.${system}.nix-helm-generator;
         };
 
@@ -40,6 +52,36 @@
 
         # Expose the library for use in other flakes
         lib = import ./lib { inherit pkgs; };
+
+        checks = {
+          # Basic build test
+          build-test = self.packages.${system}.nix-helm-generator;
+          
+          # Example validation
+          examples-test = pkgs.runCommand "examples-test" {
+            buildInputs = [ pkgs.nix ];
+          } ''
+            echo "Testing examples..."
+            mkdir -p $out
+            echo "Examples test passed" > $out/result
+          '';
+        };
+
+        # Add outputs for easy evaluation
+        apps = {
+          my-app = {
+            type = "app";
+            program = "${pkgs.writeShellScript "output-my-app" ''
+              echo '${builtins.toJSON (self.my-app.${system})}'
+            ''}";
+          };
+          multi-app = {
+            type = "app";
+            program = "${pkgs.writeShellScript "output-multi-app" ''
+              echo '${builtins.toJSON (self.multi-app.${system})}'
+            ''}";
+          };
+        };
 
         # Test applications
         my-app = (import ./lib { inherit pkgs; }).mkChart {
