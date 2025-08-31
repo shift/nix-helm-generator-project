@@ -10,9 +10,11 @@ This project provides a simple yet powerful way to create Kubernetes deployments
 
 - **YAML Generation**: Generate complete Helm chart YAML manifests from Nix expressions
 - **Production Ready**: Support for pod disruption budgets, resource limits, health checks, and other production features
+- **Advanced Features**: RBAC, StatefulSets, persistent storage, secrets management, and monitoring integration
 - **Developer Friendly**: Simple API that junior DevOps engineers can use without deep Nix or Kubernetes expertise
 - **Static Manifests**: No Helm templating - all values resolved at build time for predictability
 - **Multi-environment Support**: Easy configuration for dev/staging/prod environments
+- **Kubernetes Compatibility**: Automatic API version detection for different cluster versions
 
 ## Quick Start
 
@@ -48,6 +50,10 @@ nix-helm-generator/
 │   ├── production.nix      # Production features (PDBs, limits, etc.)
 │   └── validation.nix      # Input validation and type checking
 ├── examples/               # Usage examples
+│   ├── nginx.nix          # Basic web server example
+│   ├── postgres-enhanced.nix  # Advanced PostgreSQL with RBAC/StatefulSet
+│   ├── prometheus-enhanced.nix  # Advanced monitoring with persistence
+│   └── ...                 # Additional examples
 │   ├── simple-app.nix      # Basic application example
 │   ├── complex-app.nix     # Full production example
 │   └── multi-env.nix       # Multi-environment setup

@@ -14,6 +14,11 @@ This directory contains comprehensive examples of commonly used Helm charts reim
 6. **[cert-manager.nix](cert-manager.nix)** - Certificate management for TLS
 7. **[ingress-nginx.nix](ingress-nginx.nix)** - Kubernetes ingress controller
 
+### Enhanced Examples (New Features)
+
+8. **[postgres-enhanced.nix](postgres-enhanced.nix)** - PostgreSQL with StatefulSet, RBAC, PVC, and monitoring
+9. **[prometheus-enhanced.nix](prometheus-enhanced.nix)** - Prometheus with persistence, security, and self-monitoring
+
 ### Version-Specific Variants
 
 Located in the `versions/` directory:
@@ -31,6 +36,14 @@ Located in the `versions/` directory:
 - **Pod Disruption Budgets**: High availability guarantees
 - **Network Policies**: Traffic security and isolation
 
+### Advanced Features (Enhanced Examples)
+- **RBAC**: ServiceAccounts, Roles, RoleBindings for access control
+- **StatefulSets**: For stateful applications with persistent storage
+- **Persistent Storage**: PVCs with configurable storage classes and sizes
+- **Secrets Management**: Secure credential storage and management
+- **Monitoring Integration**: ServiceMonitors for Prometheus integration
+- **Multi-component Architecture**: Complex applications with multiple services
+
 ### Kubernetes API Version Compatibility
 - Automatic API version detection based on `kubernetesVersion`
 - Support for multiple Kubernetes versions
@@ -40,6 +53,7 @@ Located in the `versions/` directory:
 - Environment variables
 - ConfigMaps for application configuration
 - Secrets for sensitive data (placeholders included)
+- External configuration sources
 
 ## Usage
 

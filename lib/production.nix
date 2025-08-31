@@ -157,6 +157,29 @@ let
           }
         else null;
 
+      # Enhanced StatefulSet with production features
+      enhancedStatefulSet =
+        if resources ? statefulSet then
+          let
+            statefulSet = resources.statefulSet;
+            containers = applyResources appConfig statefulSet.spec.template.spec.containers;
+            containersWithHealth = applyHealthChecks appConfig containers;
+            # Create spec with enhanced containers first
+            specWithEnhancedContainers = statefulSet.spec.template.spec // {
+              containers = containersWithHealth;
+            };
+            # Then apply security context to the spec with enhanced containers
+            enhancedSpec = applySecurityContext appConfig specWithEnhancedContainers;
+          in
+          statefulSet // {
+            spec = statefulSet.spec // {
+              template = statefulSet.spec.template // {
+                spec = enhancedSpec;
+              };
+            };
+          }
+        else null;
+
       # Generate additional production resources
       pdb = mkPDB config appConfig;
       networkPolicy = mkNetworkPolicy config appConfig;
@@ -164,9 +187,16 @@ let
       # Combine all resources
       productionResources = {
         deployment = enhancedDeployment;
+        statefulSet = enhancedStatefulSet;
         service = resources.service or null;
         configMap = resources.configMap or null;
         ingress = resources.ingress or null;
+        serviceAccount = resources.serviceAccount or null;
+        role = resources.role or null;
+        roleBinding = resources.roleBinding or null;
+        persistentVolumeClaim = resources.pvc or null;
+        secret = resources.secret or null;
+        serviceMonitor = resources.serviceMonitor or null;
       } // (if pdb != null then { podDisruptionBudget = pdb; } else {})
         // (if networkPolicy != null then { networkPolicy = networkPolicy; } else {});
 
