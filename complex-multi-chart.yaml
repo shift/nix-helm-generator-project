@@ -1,0 +1,4 @@
+Nix Helm Generator Development Environment
+Available commands:
+  nix build .#nix-helm-generator
+  nix develop
