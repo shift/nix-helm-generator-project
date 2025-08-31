@@ -6,6 +6,7 @@ This guide provides step-by-step instructions for using the Nix Helm Generator m
 
 - [Quick Start](#quick-start)
 - [Basic Usage](#basic-usage)
+- [Multi-Chart Applications](#multi-chart-applications)
 - [Production Features](#production-features)
 - [Multi-Environment Setup](#multi-environment-setup)
 - [Integration with Nix Flakes](#integration-with-nix-flakes)
@@ -383,6 +384,231 @@ nix-helm-generator.mkChart {
   };
 }
 ```
+
+## Multi-Chart Applications
+
+The Nix Helm Generator supports creating complex multi-service applications with multiple charts, dependencies, and shared resources. This is perfect for microservices architectures, database + API + frontend stacks, and other complex deployments.
+
+### Basic Multi-Chart Configuration
+
+```nix
+# multi-chart-app.nix
+let
+  nix-helm = import ./lib {};
+
+  # Database service
+  database = {
+    name = "postgres-db";
+    version = "1.0.0";
+    app = {
+      name = "postgres";
+      image = "postgres:15";
+      ports = [5432];
+      env = [
+        { name = "POSTGRES_DB"; value = "myapp"; }
+        { name = "POSTGRES_USER"; value = "myapp"; }
+        { name = "POSTGRES_PASSWORD"; value = "password"; }
+      ];
+    };
+    resources = {
+      deployment = { replicas = 1; };
+      service = {
+        type = "ClusterIP";
+        ports = [{ port = 5432; targetPort = 5432; }];
+      };
+    };
+  };
+
+  # Backend API service
+  backend = {
+    name = "backend-api";
+    version = "1.0.0";
+    app = {
+      name = "backend";
+      image = "myapp/backend:latest";
+      ports = [8080];
+      env = [
+        { name = "DATABASE_URL"; value = "postgresql://myapp:password@postgres-db:5432/myapp"; }
+      ];
+    };
+    resources = {
+      deployment = { replicas = 2; };
+      service = {
+        type = "ClusterIP";
+        ports = [{ port = 8080; targetPort = 8080; }];
+      };
+    };
+  };
+
+  # Frontend service
+  frontend = {
+    name = "frontend-app";
+    version = "1.0.0";
+    app = {
+      name = "frontend";
+      image = "myapp/frontend:latest";
+      ports = [80];
+      env = [
+        { name = "API_URL"; value = "http://backend-api:8080"; }
+      ];
+    };
+    resources = {
+      deployment = { replicas = 3; };
+      service = {
+        type = "LoadBalancer";
+        ports = [{ port = 80; targetPort = 80; }];
+      };
+    };
+  };
+
+in
+# Multi-chart configuration
+{
+  name = "my-microservices-app";
+  version = "1.0.0";
+  description = "Complete microservices application";
+
+  charts = {
+    inherit database backend frontend;
+  };
+
+  dependencies = [
+    { name = "database"; condition = "database.enabled"; }
+    { name = "backend"; condition = "backend.enabled"; }
+    { name = "frontend"; condition = "frontend.enabled"; }
+  ];
+
+  global = {
+    namespace = "production";
+    imageRegistry = "myregistry.com";
+  };
+}
+```
+
+### Using Multi-Chart Applications
+
+```bash
+# Generate the multi-chart
+nix-instantiate --eval multi-chart-app.nix | jq -r '.combinedYaml' > multi-chart.yaml
+
+# Or use the library directly
+let
+  nix-helm = import ./lib {};
+  config = import ./multi-chart-app.nix;
+  result = nix-helm.mkMultiChart config;
+in
+result.toFile "multi-chart.yaml"
+```
+
+### Advanced Multi-Chart with Shared Resources
+
+```nix
+# complex-multi-chart.nix
+{
+  name = "complex-app";
+  version = "1.0.0";
+
+  charts = {
+    # ... chart definitions
+  };
+
+  dependencies = [
+    # ... dependency definitions
+  ];
+
+  global = {
+    namespace = "production";
+    labels = {
+      "app.kubernetes.io/managed-by" = "nix-helm-generator";
+      "app.kubernetes.io/part-of" = "complex-app";
+    };
+  };
+
+  # Shared resources across all charts
+  shared = {
+    appName = "complex-app";
+    namespace = "production";
+
+    resources = [
+      # Shared namespace
+      {
+        type = "namespace";
+        name = "production";
+        labels = {
+          "environment" = "prod";
+          "team" = "platform";
+        };
+      }
+
+      # Shared secret
+      {
+        type = "secret";
+        name = "app-secrets";
+        data = {
+          apiKey = "bXlhcGlrZXk="; # base64 encoded
+        };
+      }
+
+      # Shared config
+      {
+        type = "configmap";
+        name = "app-config";
+        data = {
+          "config.yaml" = "...";
+        };
+      }
+
+      # RBAC resources
+      {
+        type = "rbac";
+        name = "app-rbac";
+        rules = [
+          {
+            apiGroups = [""];
+            resources = ["pods" "services"];
+            verbs = ["get" "list"];
+          }
+        ];
+        subjects = [
+          {
+            kind = "ServiceAccount";
+            name = "app-sa";
+          }
+        ];
+      }
+    ];
+  };
+}
+```
+
+### Supported Shared Resource Types
+
+- **namespace**: Shared Kubernetes namespace
+- **configmap**: Shared configuration data
+- **secret**: Shared secrets and credentials
+- **serviceaccount**: Shared service accounts
+- **rbac**: Shared RBAC roles and bindings
+
+### Dependency Management
+
+Dependencies ensure proper chart ordering and can include conditions:
+
+```nix
+dependencies = [
+  { name = "database"; condition = "database.enabled"; }
+  { name = "cache"; condition = "redis.enabled"; }
+  { name = "backend"; }  # No condition = always enabled
+  { name = "frontend"; }
+];
+```
+
+### Multi-Chart Output
+
+The multi-chart generator produces:
+- **Individual Charts**: Access via `result.charts.chartName`
+- **Combined YAML**: Single YAML file with all resources
+- **Dependency Order**: Charts processed in dependency order
+- **Global Configuration**: Shared settings applied to all charts
 
 ## Multi-Environment Setup
 
