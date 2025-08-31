@@ -9,6 +9,7 @@ let
     serviceaccount = "ServiceAccount";
     clusterrole = "ClusterRole";
     clusterrolebinding = "ClusterRoleBinding";
+    rbac = "RBAC";
   };
 
   # Validate shared resource configuration

@@ -88,36 +88,51 @@ let
   # Topological sort with cycle detection
   topologicalSort = graph:
     let
-      # Kahn's algorithm
-      kahnSort = (queue: visited: result:
+      # Calculate initial in-degrees
+      inDegrees = lib.mapAttrs (name: node:
+        lib.length (node.dependsOn or [])
+      ) graph;
+
+      # Start with nodes that have no dependencies
+      startNodes = lib.filter (node: inDegrees.${node} == 0) (lib.attrNames graph);
+
+      # Kahn's algorithm with proper in-degree tracking
+      kahnSort = (queue: inDegrees: result: processed:
         if queue == []
-        then result
+        then
+          # Check if all nodes are processed
+          if lib.all (deg: deg == 0) (lib.attrValues inDegrees)
+          then result
+          else throw "Circular dependency detected - not all nodes could be processed"
         else let
           current = lib.head queue;
           remainingQueue = lib.tail queue;
 
-          # Find nodes that only depend on visited nodes
-          candidates = lib.filter (node:
-            let deps = graph.${node}.dependsOn or [];
-            in lib.all (dep: lib.elem dep.name visited) deps
-          ) (lib.attrNames graph);
+          # Get nodes that depend on current (outgoing edges)
+          neighbors = lib.map (dep: dep.name) (graph.${current}.dependedBy or []);
 
-          newQueue = remainingQueue ++ lib.filter (c: !lib.elem c visited) candidates;
-          newVisited = visited ++ [current];
+          # Decrease in-degrees of neighbors
+          newInDegrees = lib.foldl (acc: neighbor:
+            if acc ? ${neighbor}
+            then acc // { ${neighbor} = acc.${neighbor} - 1; }
+            else acc
+          ) inDegrees neighbors;
+
+          # Add neighbors with in-degree 0 to queue (if not already processed)
+          newCandidates = lib.filter (n:
+            newInDegrees.${n} == 0 && !lib.elem n processed
+          ) neighbors;
+
+          newQueue = remainingQueue ++ newCandidates;
+          newProcessed = processed ++ [current];
           newResult = result ++ [current];
-        in kahnSort newQueue newVisited newResult
+        in kahnSort newQueue newInDegrees newResult newProcessed
       );
-
-      # Start with nodes that have no dependencies
-      startNodes = lib.filter (node:
-        let deps = graph.${node}.dependsOn or [];
-        in deps == []
-      ) (lib.attrNames graph);
 
     in
     if startNodes == []
     then throw "No charts without dependencies found - possible circular dependency"
-    else kahnSort startNodes [] [];
+    else kahnSort startNodes inDegrees [] [];
 
   # Evaluate conditional dependencies
   evaluateConditions = dependencies: values:
