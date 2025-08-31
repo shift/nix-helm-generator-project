@@ -1,4 +1,4 @@
-{ pkgs ? import <nixpkgs> {} }:
+ { pkgs ? import <nixpkgs> {} }:
 
 let
   inherit (pkgs) lib;
@@ -8,8 +8,11 @@ let
    resources = import ./resources.nix { inherit lib; };
    production = import ./production.nix { inherit lib; };
    validation = import ./validation.nix { inherit lib; };
+   multiChart = import ./multi-chart.nix { inherit lib chart resources production validation mkChart; };
+   dependency = import ./dependency.nix { inherit lib; };
+   shared = import ./shared.nix { inherit lib; };
 
-   # Core mkChart function
+   # Core mkChart function (single chart)
    mkChart = config:
      let
        # Validate input configuration
@@ -43,12 +46,23 @@ let
       toFile = name: pkgs.writeText name yamlOutput;
     };
 
+   # Multi-chart function
+   mkMultiChart = config:
+     let
+       # Check if this is a multi-chart configuration
+       isMultiChart = config ? charts && lib.isAttrs config.charts;
+
+       result = if isMultiChart
+         then multiChart.mkMultiChart config
+         else throw "Not a valid multi-chart configuration. Use mkChart for single charts.";
+     in result;
+
 in
 {
-  inherit mkChart;
+  inherit mkChart mkMultiChart;
 
   # Expose individual modules for advanced usage
-  inherit chart resources production validation;
+  inherit chart resources production validation multiChart dependency shared;
 
   # Utility functions
   utils = {
