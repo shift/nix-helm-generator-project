@@ -72,13 +72,13 @@
           my-app = {
             type = "app";
             program = "${pkgs.writeShellScript "output-my-app" ''
-              echo '${builtins.toJSON (self.my-app.${system})}'
+              exec echo '${builtins.toJSON (self.my-app.${system})}'
             ''}";
           };
           multi-app = {
             type = "app";
             program = "${pkgs.writeShellScript "output-multi-app" ''
-              echo '${builtins.toJSON (self.multi-app.${system})}'
+              exec echo '${builtins.toJSON (self.multi-app.${system})}'
             ''}";
           };
         };
