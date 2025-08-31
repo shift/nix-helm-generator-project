@@ -19,15 +19,18 @@ This project provides a simple yet powerful way to create Kubernetes deployments
 ## Quick Start
 
 ```bash
-# Clone or set up the project
-git clone <repository-url>
-cd nix-helm-generator
+# Clone the project
+git clone https://github.com/shift/nix-helm-generator-project.git
+cd nix-helm-generator-project
 
 # Use Nix flake for development
 nix develop
 
-# Generate a simple chart
-nix build .#simple-app
+# Build the Nix Helm Generator
+nix build .#nix-helm-generator
+
+# Test the examples
+./test-simple-validation.sh
 ```
 
 ## Documentation
