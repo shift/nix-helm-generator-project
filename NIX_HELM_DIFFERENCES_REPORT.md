@@ -113,6 +113,98 @@ This report documents the comprehensive analysis of differences between outputs 
 - **Missing in Nix**: Alerting, node metrics, service discovery, multiple components
 - **Missing in Helm**: Custom scrape configurations
 
+### Elasticsearch
+
+#### Nix Generator Output
+```yaml
+# Key resources generated:
+- ConfigMap: elasticsearch.yml (detailed configuration)
+- Deployment: Single replica with custom elasticsearch configuration
+- NetworkPolicy: Restricts access to specific clients
+- PodDisruptionBudget: Ensures availability
+- Service: ClusterIP for internal access
+
+# Key configuration highlights:
+- Single-node discovery type
+- Custom JVM settings (-Xms1g -Xmx1g)
+- Disabled security features (xpack.security.enabled: false)
+- Memory and thread pool optimizations
+- Health checks on /_cluster/health endpoint
+```
+
+#### Standard Helm Output
+**Note**: The standard Helm chart output for Elasticsearch was not available in the test environment. Based on typical Elasticsearch Helm charts, it would include:
+
+```yaml
+# Expected resources (based on standard charts):
+- StatefulSet: For data persistence and stable identity
+- Service: Headless service for pod communication
+- ConfigMap: Multiple configuration files
+- Secret: For authentication and TLS certificates
+- PersistentVolumeClaim: For data storage
+- ServiceAccount: For RBAC permissions
+- ClusterRole/Role: RBAC definitions
+- Ingress: For external access
+- NetworkPolicy: Advanced network security
+```
+
+#### Key Differences
+- **Missing Helm Output**: Unable to compare with actual Helm output due to empty file
+- **Nix Focus**: Provides basic single-node Elasticsearch with custom configuration
+- **Expected Helm Features**: Would include StatefulSet, persistence, security, RBAC, and multi-node support
+- **Intentional vs Unintentional**: The differences appear intentional - Nix provides minimal setup while Helm would provide production-grade deployment
+
+### Ingress-Nginx
+
+#### Nix Generator Output
+```yaml
+# Key resources generated:
+- ConfigMap: nginx.conf with custom configuration
+- Deployment: Single replica ingress controller
+- NetworkPolicy: Basic network isolation
+- PodDisruptionBudget: 50% minimum available
+- Service: ClusterIP for internal access
+
+# Key configuration highlights:
+- Custom nginx configuration with gzip, logging
+- Basic security context (non-root user)
+- Health checks on /healthz endpoint
+- Resource limits (500m CPU, 512Mi memory)
+- Ports 80 and 443 exposed
+```
+
+#### Standard Helm Output
+```yaml
+# Key resources generated (from actual output):
+- ServiceAccount: ingress-nginx
+- ConfigMap: controller configuration
+- ClusterRole: Extensive permissions for ingress management
+- ClusterRoleBinding: Binds service account to cluster role
+- Role: Namespace-specific permissions
+- RoleBinding: Binds service account to role
+- Service: LoadBalancer type (vs ClusterIP in Nix)
+- Deployment: With extensive labels and annotations
+- IngressClass: Defines nginx as ingress class
+- ValidatingWebhookConfiguration: For admission control
+- Job: For webhook certificate generation
+- Additional ServiceAccount/Role/ClusterRole: For admission webhooks
+
+# Key differences in deployment:
+- LoadBalancer service type vs ClusterIP
+- Extensive RBAC (ClusterRole, Role, bindings)
+- Webhook configurations for admission control
+- Certificate management jobs
+- More comprehensive labeling and annotations
+```
+
+#### Key Differences
+- **Service Type**: Nix uses ClusterIP, Helm uses LoadBalancer for external access
+- **RBAC Complexity**: Nix has minimal/no RBAC, Helm has extensive ClusterRole/Role definitions
+- **Admission Control**: Helm includes ValidatingWebhookConfiguration and certificate jobs
+- **Security**: Helm has more advanced security contexts and capabilities management
+- **Operational Features**: Helm includes webhook management and certificate generation
+- **Intentional vs Unintentional**: Differences are largely intentional - Nix provides basic ingress while Helm provides production-ready controller with full feature set
+
 ## Categorization of Differences
 
 ### Intentional Differences (Design Choices)
