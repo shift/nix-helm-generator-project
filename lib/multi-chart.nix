@@ -1,4 +1,4 @@
-{ lib, chart, resources, production, validation, mkChart }:
+{ lib, chart, resources, production, validation, mkChart, shared, dependency }:
 
 let
   # Multi-chart configuration validation
@@ -36,26 +36,19 @@ let
       global = config.global or {};
     };
 
-  # Simple dependency resolution
-  resolveDependencies = charts: dependencies:
+  # Enhanced dependency resolution with condition evaluation
+  resolveDependencies = charts: dependencies: config:
     let
-      chartNames = lib.attrNames charts;
+      # Create values object for condition evaluation
+      values = lib.mapAttrs (chartName: chartConfig:
+        let
+          enabled = if chartConfig ? enabled then chartConfig.enabled else true;
+        in { inherit enabled; } // chartConfig
+      ) charts;
 
-      # Validate that all dependencies reference existing charts
-      validateDeps = deps:
-        lib.map (dep:
-          if lib.elem dep.name chartNames
-          then dep
-          else throw "Dependency '${dep.name}' references non-existent chart. Available charts: ${lib.concatStringsSep ", " chartNames}"
-        ) deps;
-
-      validatedDeps = validateDeps dependencies;
-
-      # For now, return charts in the order they appear in dependencies
-      # followed by any remaining charts
-      depOrder = lib.map (dep: dep.name) validatedDeps;
-      remainingCharts = lib.filter (name: !lib.elem name depOrder) chartNames;
-    in depOrder ++ remainingCharts;
+      # Use the enhanced dependency resolution
+      resolved = dependency.resolveAllDependencies charts dependencies values;
+    in resolved.sorted;
 
   # Generate individual charts with shared context
   generateCharts = multiConfig: orderedCharts:
@@ -112,18 +105,35 @@ let
       # Validate configuration
       validatedConfig = validateMultiChartConfig config;
 
-      # Resolve dependencies
-      orderedCharts = resolveDependencies validatedConfig.charts validatedConfig.dependencies;
+      # Process shared resources if present
+      sharedResources = if config ? shared
+        then shared.mkSharedResources config.shared
+        else [];
+
+      # Merge shared resources into chart configurations
+      chartsWithShared = if config ? shared
+        then shared.mergeSharedIntoCharts sharedResources validatedConfig.charts
+        else validatedConfig.charts;
+
+      # Resolve dependencies with proper condition evaluation
+      orderedCharts = resolveDependencies chartsWithShared validatedConfig.dependencies validatedConfig;
 
       # Generate individual charts
       generatedCharts = generateCharts validatedConfig orderedCharts;
 
+      # Generate shared resources YAML
+      sharedYaml = if sharedResources != []
+        then lib.concatStringsSep "\n---\n" (lib.map (res: lib.generators.toYAML {} res) sharedResources)
+        else "";
+
       # Combine outputs
-      combinedYaml = combineOutputs generatedCharts;
+      combinedYaml = if sharedYaml != ""
+        then sharedYaml + "\n---\n" + combineOutputs generatedCharts
+        else combineOutputs generatedCharts;
 
     in
     {
-      inherit validatedConfig orderedCharts generatedCharts combinedYaml;
+      inherit validatedConfig orderedCharts generatedCharts combinedYaml sharedResources;
 
       # Convenience functions
       toString = combinedYaml;

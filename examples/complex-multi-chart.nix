@@ -184,14 +184,17 @@ in
   description = "Complex microservices application with shared resources";
 
   charts = {
-    inherit databaseService backendService frontendService redisService;
+    database = databaseService;
+    backend = backendService;
+    frontend = frontendService;
+    redis = redisService;
   };
 
   dependencies = [
-    { name = "databaseService"; condition = "database.enabled"; }
-    { name = "redisService"; condition = "redis.enabled"; }
-    { name = "backendService"; condition = "backend.enabled"; }
-    { name = "frontendService"; condition = "frontend.enabled"; }
+    { name = "database"; condition = "database.enabled"; }
+    { name = "redis"; condition = "redis.enabled"; }
+    { name = "backend"; condition = "backend.enabled"; }
+    { name = "frontend"; condition = "frontend.enabled"; }
   ];
 
   global = {

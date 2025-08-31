@@ -55,12 +55,13 @@ in
   description = "Simple multi-chart application";
 
   charts = {
-    inherit apiChart webChart;
+    api = apiChart;
+    web = webChart;
   };
 
   dependencies = [
-    { name = "apiChart"; }
-    { name = "webChart"; }
+    { name = "api"; }
+    { name = "web"; }
   ];
 
   global = {

@@ -21,32 +21,47 @@ let
         dependedBy = [];
       }) charts;
 
-      # Add dependencies
-      addDeps = graph: deps:
-        lib.foldl (acc: dep:
-          let
-            validatedDep = validateDependency dep;
-            depName = validatedDep.name;
-            condition = validatedDep.condition or "true";
-          in
-          if !acc ? ${depName}
-          then throw "Dependency '${depName}' references non-existent chart"
-          else acc // {
-            ${depName} = acc.${depName} // {
-              dependedBy = acc.${depName}.dependedBy ++ [validatedDep];
-            };
-          } // {
-            # Add reverse dependency
-            ${validatedDep.dependsOn or "unknown"} = acc.${validatedDep.dependsOn or "unknown"} // {
-              dependsOn = acc.${validatedDep.dependsOn or "unknown"}.dependsOn ++ [{
-                name = depName;
-                condition = condition;
-              }];
-            };
-          }
-        ) graph deps;
+      # Build graph based on dependency order
+      # Assume dependencies are listed in deployment order
+      buildGraph = deps:
+        let
+          # Create a map of chart positions
+          depOrder = lib.map (dep: dep.name) deps;
+          positions = lib.listToAttrs (
+            lib.imap0 (i: name: { name = name; value = i; }) depOrder
+          );
 
-    in addDeps initGraph dependencies;
+          # For each chart, add dependencies on all previous charts
+          addDeps = lib.foldl (acc: dep:
+            let
+              depName = dep.name;
+              condition = dep.condition or "true";
+              position = positions.${depName} or 0;
+              # All charts before this one in the list are dependencies
+              prevDeps = lib.take position depOrder;
+            in
+            lib.foldl (graphAcc: prevDep:
+              graphAcc // {
+                # Add to current chart's dependsOn
+                ${depName} = graphAcc.${depName} // {
+                  dependsOn = graphAcc.${depName}.dependsOn ++ [{
+                    name = prevDep;
+                    condition = condition;
+                  }];
+                };
+                # Add to previous chart's dependedBy
+                ${prevDep} = graphAcc.${prevDep} // {
+                  dependedBy = graphAcc.${prevDep}.dependedBy ++ [{
+                    name = depName;
+                    condition = condition;
+                  }];
+                };
+              }
+            ) acc prevDeps
+          ) initGraph deps;
+        in addDeps;
+
+    in buildGraph dependencies;
 
   # Detect circular dependencies
   detectCircularDependencies = graph:
@@ -109,9 +124,16 @@ let
     lib.filter (dep:
       if dep ? condition
       then let
-        # Simple condition evaluation (can be extended)
         condition = dep.condition;
-        enabled = values.${condition} or false;
+        # Handle conditions like "service1.enabled"
+        parts = lib.splitString "." condition;
+        enabled = if lib.length parts == 2
+          then let
+            chartName = lib.head parts;
+            prop = lib.last parts;
+            chartValues = values.${chartName} or {};
+          in chartValues.${prop} or true
+          else values.${condition} or true;
       in enabled
       else true  # No condition means always enabled
     ) dependencies;

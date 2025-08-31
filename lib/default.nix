@@ -8,7 +8,7 @@ let
    resources = import ./resources.nix { inherit lib; };
    production = import ./production.nix { inherit lib; };
    validation = import ./validation.nix { inherit lib; };
-   multiChart = import ./multi-chart.nix { inherit lib chart resources production validation mkChart; };
+    multiChart = import ./multi-chart.nix { inherit lib chart resources production validation mkChart shared dependency; };
    dependency = import ./dependency.nix { inherit lib; };
    shared = import ./shared.nix { inherit lib; };
 
