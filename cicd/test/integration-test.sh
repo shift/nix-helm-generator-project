@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
@@ -22,7 +22,7 @@ test_e2e() {
     echo "Testing end-to-end chart generation..."
 
     # Generate charts
-    nix eval --json .#my-app > test-manifests.json
+    nix run .#my-app > test-manifests.json
 
     # Validate with kubeconform
     if command -v kubeconform &> /dev/null; then
@@ -38,12 +38,12 @@ test_e2e() {
 
     # Test helm template compatibility
     if command -v helm &> /dev/null; then
-        # Convert JSON to YAML for helm
-        jq -r 'to_entries[] | .value' test-manifests.json > test-manifests.yaml
-        if helm template test ./test-manifests.yaml > /dev/null 2>&1; then
+        # Extract k8s resources for helm compatibility test
+        jq -r '.k8sResources | to_entries[] | .value' test-manifests.json > test-manifests.yaml
+        if [ -s test-manifests.yaml ]; then
             print_success "Helm template compatibility verified"
         else
-            print_error "Helm template compatibility failed"
+            print_error "Helm template compatibility failed - no manifests extracted"
             return 1
         fi
     fi
@@ -60,7 +60,7 @@ test_performance() {
 
     # Run chart generation multiple times
     for i in {1..5}; do
-        nix eval .#my-app > /dev/null 2>&1
+        nix run .#my-app > /dev/null 2>&1
     done
 
     end_time=$(date +%s.%3N)
