@@ -13,8 +13,11 @@
       in
       {
         packages = {
+          nix-helm-generator = pkgs.runCommand "nix-helm-generator" {} ''
+            mkdir -p $out
+            cp -r ${./lib} $out/lib
+          '';
           default = self.packages.${system}.nix-helm-generator;
-          nix-helm-generator = import ./lib { inherit pkgs; };
         };
 
         devShells.default = pkgs.mkShell {
@@ -37,6 +40,42 @@
 
         # Expose the library for use in other flakes
         lib = import ./lib { inherit pkgs; };
+
+        # Test applications
+        my-app = (import ./lib { inherit pkgs; }).mkChart {
+          name = "my-app";
+          version = "1.0.0";
+          description = "Test application";
+          appVersion = "1.0.0";
+          app = {
+            image = "nginx:1.25.0";
+            ports = [80];
+          };
+        };
+
+        multi-app = (import ./lib { inherit pkgs; }).mkMultiChart {
+          name = "multi-app";
+          version = "1.0.0";
+          description = "Multi-chart test application";
+          charts = {
+            frontend = {
+              name = "frontend";
+              version = "1.0.0";
+              app = {
+                image = "nginx:1.25.0";
+                ports = [80];
+              };
+            };
+            backend = {
+              name = "backend";
+              version = "1.0.0";
+              app = {
+                image = "node:18";
+                ports = [3000];
+              };
+            };
+          };
+        };
       }
     );
 }

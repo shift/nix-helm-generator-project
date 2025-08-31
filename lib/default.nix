@@ -43,7 +43,6 @@ let
 
       # Convenience functions
       toString = yamlOutput;
-      toFile = name: pkgs.writeText name yamlOutput;
     };
 
    # Multi-chart function

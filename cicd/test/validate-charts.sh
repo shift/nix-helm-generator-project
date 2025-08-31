@@ -56,14 +56,14 @@ else
     exit 1
 fi
 
-# Test Kubernetes manifest validation
-print_status "Testing Kubernetes manifest validation..."
-if nix run .#validate-manifests -- /tmp/test-charts.json; then
+  # Test Kubernetes manifest validation
+  print_status "Testing Kubernetes manifest validation..."
+  if bash ./cicd/test/validate-manifests.sh /tmp/test-charts.json; then
     print_status "Kubernetes manifests are valid"
-else
+  else
     print_error "Kubernetes manifest validation failed"
     exit 1
-fi
+  fi
 
 # Test multi-chart support
 print_status "Testing multi-chart support..."

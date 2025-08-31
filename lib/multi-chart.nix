@@ -137,7 +137,6 @@ let
 
       # Convenience functions
       toString = combinedYaml;
-      toFile = name: lib.writeText name combinedYaml;
 
       # Individual chart access
       charts = lib.listToAttrs (
