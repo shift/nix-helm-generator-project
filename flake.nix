@@ -44,7 +44,8 @@ buildInputs = with pkgs; [
           
            # ensure direnv picks up flake devShell
            shellHook = ''
-             if [ -z "\${IN_NIX_SHELL:-}" ]; then
+             if [ -z "\${IN_NIX_SHELL:-}" ]; then\
+              true
                echo "To use the devShell run: nix develop"
              fi
 
