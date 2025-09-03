@@ -131,7 +131,7 @@
           '';
         };
         # expose checks under legacyPackages as well
-        legacyPackages = { inherit (pkgs) (checks or { }); };
+        legacyPackages = if pkgs ? checks then { inherit (pkgs) checks; } else { };
       }
     );
 }
