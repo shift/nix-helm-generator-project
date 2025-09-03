@@ -10,7 +10,34 @@ fi
 # Render with helm and convert
 helm show values "$here" > "$here/out-values.yaml"
 helm template "$here" > "$here/out-rendered.yaml"
-yq -o=json '.' "$here/out-values.yaml" > "$here/out-values.json"
+# convert YAML->JSON: prefer yq v4, then yq v3, then python fallback
+if command -v yq >/dev/null 2>&1; then
+  if yq --version 2>/dev/null | grep -q "version"; then
+    # yq v4+ (mikefarah)
+    if yq eval -o=json '.' "$here/out-values.yaml" > "$here/out-values.json" 2>/dev/null; then
+      echo "converted with yq eval"
+    elif yq -o=json '.' "$here/out-values.yaml" > "$here/out-values.json" 2>/dev/null; then
+      echo "converted with yq -o=json"
+    else
+      echo "yq present but conversion failed, falling back to python"
+      python -c 'import sys,yaml,json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)' < "$here/out-values.yaml" > "$here/out-values.json"
+    fi
+  else
+    # unknown yq, try common invocations
+    if yq eval -o=json '.' "$here/out-values.yaml" > "$here/out-values.json" 2>/dev/null; then
+      echo "converted with yq eval"
+    elif yq -o=json '.' "$here/out-values.yaml" > "$here/out-values.json" 2>/dev/null; then
+      echo "converted with yq -o=json"
+    else
+      echo "yq present but conversion failed, falling back to python"
+      python -c 'import sys,yaml,json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)' < "$here/out-values.yaml" > "$here/out-values.json"
+    fi
+  fi
+else
+  # fallback to python
+  python -c 'import sys,yaml,json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)' < "$here/out-values.yaml" > "$here/out-values.json"
+fi
+
 
 # Load into nix expression
 nix-instantiate --eval -E "let pkgs = import <nixpkgs> {}; demo = import '$here/example.nix' { inherit pkgs; }; in demo.replicas" | sed -n '1p'
