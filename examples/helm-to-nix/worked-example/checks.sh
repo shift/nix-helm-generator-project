@@ -2,9 +2,10 @@
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 # Ensure we're in devShell when running heavy tools
+# During hermetic builds, IN_NIX_SHELL won't be set; allow running when build tools are present
+# If running interactively, recommend devShell but do not fail
 if [ -z "${IN_NIX_SHELL:-}" ]; then
-  echo "Not in nix devShell - run: nix develop" >&2
-  exit 2
+  echo "Warning: not in nix devShell - proceeding in hermetic build environment" >&2
 fi
 
 # Render with helm and convert
