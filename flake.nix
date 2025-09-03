@@ -62,14 +62,18 @@ if [ -z "$${IN_NIX_SHELL:-}" ]; then
           # Basic build test
           build-test = self.packages.${system}.nix-helm-generator;
           
-          # Example validation
-          examples-test = pkgs.runCommand "examples-test" {
-            buildInputs = [ pkgs.nix ];
-          } ''
-            echo "Testing examples..."
-            mkdir -p $out
-            echo "Examples test passed" > $out/result
-          '';
+           # Example validation: run worked-example checks
+           examples-test = pkgs.runCommand "examples-test" {
+             buildInputs = [ pkgs.kubernetes-helm pkgs.yq pkgs.python3 pkgs.jq pkgs.kubectl pkgs.bash ];
+           } ''
+             set -euo pipefail
+             cd "${./examples/helm-to-nix/worked-example}"
+             # ensure checks.sh is executable
+             chmod +x ./checks.sh
+             ./checks.sh
+             mkdir -p $out
+             echo "Examples test passed" > $out/result
+           '';
         };
 
         # Add outputs for easy evaluation
