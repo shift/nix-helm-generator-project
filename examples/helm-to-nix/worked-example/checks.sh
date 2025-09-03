@@ -1,6 +1,9 @@
 #! /bin/bash
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
+# when run in hermetic tmpdir, prefer writable WORKDIR env if set
+workdir=${WORKDIR:-$here}
+
 # Ensure we're in devShell when running heavy tools
 # During hermetic builds, IN_NIX_SHELL won't be set; allow running when build tools are present
 # If running interactively, recommend devShell but do not fail

@@ -126,6 +126,7 @@
             tmpdir=$(mktemp -d)
             cp -r ${./examples/helm-to-nix/worked-example} "$tmpdir/worked-example"
             cd "$tmpdir/worked-example"
+            export WORKDIR="$tmpdir/worked-example"
             chmod +x ./checks.sh
             ${pkgs.bash}/bin/bash ./checks.sh
             mkdir -p $out
