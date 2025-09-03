@@ -130,6 +130,8 @@
             echo "Examples test passed" > $out/result
           '';
         };
+        # expose checks under legacyPackages as well
+        legacyPackages = { inherit (pkgs) checks; };
       }
     );
 }
