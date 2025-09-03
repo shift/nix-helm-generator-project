@@ -44,10 +44,9 @@ buildInputs = with pkgs; [
           
            # ensure direnv picks up flake devShell
            shellHook = ''
-             if [ -z "\${IN_NIX_SHELL:-}" ]; then\
-              true
-               echo "To use the devShell run: nix develop"
-             fi
+if [ -z "$${IN_NIX_SHELL:-}" ]; then
+                echo "To use the devShell run: nix develop"
+              fi
 
              echo "Nix Helm Generator Development Environment"
              echo "Available commands:"
