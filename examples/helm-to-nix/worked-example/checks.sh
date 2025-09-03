@@ -12,8 +12,8 @@ if [ -z "${IN_NIX_SHELL:-}" ]; then
 fi
 
 # Render with helm and convert
-helm show values "$here" > "$workdir/out-values.yaml"
-helm template "$here" > "$workdir/out-rendered.yaml"
+helm show values "$here" > "$workdir/out-values.yaml" 2>/dev/null || helm show values "$here" > "$workdir/out-values.yaml"
+helm template "$here" > "$workdir/out-rendered.yaml" 2>/dev/null || helm template "$here" > "$workdir/out-rendered.yaml"
 # convert YAML->JSON: prefer yq v4, then yq v3, then python fallback
 if command -v yq >/dev/null 2>&1; then
   if yq --version 2>/dev/null | grep -q "version"; then
