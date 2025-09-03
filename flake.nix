@@ -123,10 +123,12 @@
           } ''
             set -euo pipefail
             mkdir -p $out
-            cp -r ${./examples/helm-to-nix/worked-example} $out/worked-example
-            cd $out/worked-example
+            tmpdir=$(mktemp -d)
+            cp -r ${./examples/helm-to-nix/worked-example} "$tmpdir/worked-example"
+            cd "$tmpdir/worked-example"
             chmod +x ./checks.sh
             ${pkgs.bash}/bin/bash ./checks.sh
+            mkdir -p $out
             echo "Examples test passed" > $out/result
           '';
         };
