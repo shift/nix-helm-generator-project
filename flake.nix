@@ -58,23 +58,9 @@ if [ -z "$${IN_NIX_SHELL:-}" ]; then
         # Expose the library for use in other flakes
         lib = import ./lib { inherit pkgs; };
 
-        checks = {
-          # Basic build test
-          build-test = self.packages.${system}.nix-helm-generator;
-          
-           # Example validation: run worked-example checks
-           examples-test = pkgs.runCommand "examples-test" {
-             buildInputs = [ pkgs.kubernetes-helm pkgs.yq pkgs.python3 pkgs.jq pkgs.kubectl pkgs.bash ];
-           } ''
-             set -euo pipefail
-             cd "${./examples/helm-to-nix/worked-example}"
-             # ensure checks.sh is executable
-             chmod +x ./checks.sh
-             ./checks.sh
-             mkdir -p $out
-             echo "Examples test passed" > $out/result
-           '';
-        };
+        # keep packages as before
+        # checks will be provided at top-level outputs (below)
+
 
         # Add outputs for easy evaluation
         apps = {
@@ -127,6 +113,22 @@ if [ -z "$${IN_NIX_SHELL:-}" ]; then
             };
           };
         };
-      }
-    );
-}
+       }
+
+       # top-level checks for this system
+       checks = {
+         examples-test = pkgs.runCommand "examples-test" {
+           buildInputs = [ pkgs.kubernetes-helm pkgs.yq pkgs.python3 pkgs.jq pkgs.kubectl pkgs.bash ];
+         } ''
+           set -euo pipefail
+           mkdir -p $out
+           cp -r ${./examples/helm-to-nix/worked-example} $out/worked-example
+           cd $out/worked-example
+           chmod +x ./checks.sh
+           ./checks.sh
+           echo "Examples test passed" > $out/result
+         '';
+       };
+     }
+   );
+ }
