@@ -113,7 +113,7 @@ if [ -z "$${IN_NIX_SHELL:-}" ]; then
             };
           };
         };
-       }
+       };
 
        # top-level checks for this system
        checks = {
