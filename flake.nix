@@ -129,6 +129,21 @@ if [ -z "$${IN_NIX_SHELL:-}" ]; then
            echo "Examples test passed" > $out/result
          '';
        };
-     }
-   );
- }
+      } // {
+        checks = {
+          examples-test = pkgs.runCommand "examples-test" {
+            buildInputs = [ pkgs.kubernetes-helm pkgs.yq pkgs.python3 pkgs.jq pkgs.kubectl pkgs.bash ];
+          } ''
+            set -euo pipefail
+            mkdir -p $out
+            cp -r ${./examples/helm-to-nix/worked-example} $out/worked-example
+            cd $out/worked-example
+            chmod +x ./checks.sh
+            ./checks.sh
+            echo "Examples test passed" > $out/result
+          '';
+        };
+      }
+    );
+  }
+
