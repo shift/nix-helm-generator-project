@@ -11,8 +11,8 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
       in
-      {
-        packages = {
+      let
+        myPackages = {
           nix-helm-generator = pkgs.runCommand "nix-helm-generator" {} ''
             mkdir -p $out
             cp -r ${./lib} $out/lib
@@ -32,54 +32,47 @@
           default = self.packages.${system}.nix-helm-generator;
         };
 
-        devShells.default = pkgs.mkShell {
-buildInputs = with pkgs; [
-             nix
-             kubernetes-helm
-             kubectl
-             yq
-             jq
-             python3Packages.pyyaml
-           ];
-          
-           # ensure direnv picks up flake devShell
-           shellHook = ''
-if [ -z "$${IN_NIX_SHELL:-}" ]; then
-                echo "To use the devShell run: nix develop"
-              fi
+        myDevShell = pkgs.mkShell {
+          buildInputs = with pkgs; [
+            nix
+            kubernetes-helm
+            kubectl
+            yq
+            jq
+            python3Packages.pyyaml
+          ];
 
-             echo "Nix Helm Generator Development Environment"
-             echo "Available commands:"
-             echo "  nix build .#nix-helm-generator"
-             echo "  nix develop"
-           '';
+          shellHook = ''
+            if [ -z "$${IN_NIX_SHELL:-}" ]; then
+              echo "To use the devShell run: nix develop"
+            fi
+
+            echo "Nix Helm Generator Development Environment"
+            echo "Available commands:"
+            echo "  nix build .#nix-helm-generator"
+            echo "  nix develop"
+          '';
         };
 
-        # Expose the library for use in other flakes
-        lib = import ./lib { inherit pkgs; };
+        myLib = import ./lib { inherit pkgs; };
 
-        # keep packages as before
-        # checks will be provided at top-level outputs (below)
-
-
-        # Add outputs for easy evaluation
-        apps = {
+        myApps = {
           my-app = {
             type = "app";
-            program = "${pkgs.writeShellScript "output-my-app" ''
-              exec echo '${builtins.toJSON (self.my-app.${system})}'
+            program = "${pkgs.writeShellScript "output-my-app" ''\
+              exec echo '${builtins.toJSON (self.my-app.${system})}'\
             ''}";
           };
           multi-app = {
             type = "app";
-            program = "${pkgs.writeShellScript "output-multi-app" ''
-              exec echo '${builtins.toJSON (self.multi-app.${system})}'
+            program = "${pkgs.writeShellScript "output-multi-app" ''\
+              exec echo '${builtins.toJSON (self.multi-app.${system})}'\
             ''}";
           };
         };
 
         # Test applications
-        my-app = (import ./lib { inherit pkgs; }).mkChart {
+        myAppValue = (import ./lib { inherit pkgs; }).mkChart {
           name = "my-app";
           version = "1.0.0";
           description = "Test application";
@@ -90,7 +83,7 @@ if [ -z "$${IN_NIX_SHELL:-}" ]; then
           };
         };
 
-        multi-app = (import ./lib { inherit pkgs; }).mkMultiChart {
+        multiAppValue = (import ./lib { inherit pkgs; }).mkMultiChart {
           name = "multi-app";
           version = "1.0.0";
           description = "Multi-chart test application";
@@ -113,23 +106,17 @@ if [ -z "$${IN_NIX_SHELL:-}" ]; then
             };
           };
         };
-       };
+      in
+      {
+        packages = myPackages;
+        devShells = {
+          default = myDevShell;
+        };
+        lib = myLib;
+        apps = myApps;
+        my-app = myAppValue;
+        multi-app = multiAppValue;
 
-       # top-level checks for this system
-       checks = {
-         examples-test = pkgs.runCommand "examples-test" {
-           buildInputs = [ pkgs.kubernetes-helm pkgs.yq pkgs.python3 pkgs.jq pkgs.kubectl pkgs.bash ];
-         } ''
-           set -euo pipefail
-           mkdir -p $out
-           cp -r ${./examples/helm-to-nix/worked-example} $out/worked-example
-           cd $out/worked-example
-           chmod +x ./checks.sh
-           ./checks.sh
-           echo "Examples test passed" > $out/result
-         '';
-       };
-      } // {
         checks = {
           examples-test = pkgs.runCommand "examples-test" {
             buildInputs = [ pkgs.kubernetes-helm pkgs.yq pkgs.python3 pkgs.jq pkgs.kubectl pkgs.bash ];
@@ -144,6 +131,9 @@ if [ -z "$${IN_NIX_SHELL:-}" ]; then
           '';
         };
       }
+    );
+}
+
     );
   }
 
