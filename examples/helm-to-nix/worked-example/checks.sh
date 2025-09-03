@@ -40,7 +40,7 @@ fi
 
 
 # Load into nix expression
-nix-instantiate --eval -E "let pkgs = import <nixpkgs> {}; demo = import '$here/example.nix' { inherit pkgs; }; in demo.replicas" | sed -n '1p'
+(cd "$here" && nix-instantiate --eval -E "let pkgs = import <nixpkgs> {}; demo = import ./example.nix { inherit pkgs; }; in demo.replicas") | sed -n '1p'
 
 # Simple content checks
 grep -q "kind: Deployment" "$here/out-rendered.yaml"
