@@ -33,21 +33,26 @@
         };
 
         devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            nix
-            kubernetes-helm
-            kubectl
-            yq
-            jq
-            python3Packages.pyyaml
-          ];
+buildInputs = with pkgs; [
+             nix
+             kubernetes-helm
+             kubectl
+             yq
+             jq
+             python3Packages.pyyaml
+           ];
+          
+           # ensure direnv picks up flake devShell
+           shellHook = ''
+             if [ -z "\${IN_NIX_SHELL:-}" ]; then
+               echo "To use the devShell run: nix develop"
+             fi
 
-          shellHook = ''
-            echo "Nix Helm Generator Development Environment"
-            echo "Available commands:"
-            echo "  nix build .#nix-helm-generator"
-            echo "  nix develop"
-          '';
+             echo "Nix Helm Generator Development Environment"
+             echo "Available commands:"
+             echo "  nix build .#nix-helm-generator"
+             echo "  nix develop"
+           '';
         };
 
         # Expose the library for use in other flakes
