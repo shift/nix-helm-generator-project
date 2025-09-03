@@ -126,7 +126,7 @@
             cp -r ${./examples/helm-to-nix/worked-example} $out/worked-example
             cd $out/worked-example
             chmod +x ./checks.sh
-            ./checks.sh
+            ${pkgs.bash}/bin/bash ./checks.sh
             echo "Examples test passed" > $out/result
           '';
         };
