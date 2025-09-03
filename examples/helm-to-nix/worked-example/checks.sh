@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#! /bin/bash
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 # Ensure we're in devShell when running heavy tools
