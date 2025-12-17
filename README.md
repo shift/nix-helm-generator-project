@@ -1,88 +1,65 @@
 # Nix Helm Generator
 
-A Nix module that generates production-ready Helm charts from Nix expressions, producing static YAML manifests without Helm templating for more predictable and auditable deployments.
+A Nix-based Helm chart generator that creates production-ready Kubernetes manifests from declarative Nix expressions. Generate static YAML without Helm templating complexity while maintaining full GitOps compatibility.
 
-## Overview
+## 🚀 Features
 
-This project provides a simple yet powerful way to create Kubernetes deployments using Nix's declarative approach. By generating static YAML manifests, we eliminate the complexity and unpredictability of Helm templating while maintaining all the benefits of Infrastructure as Code.
+- **📝 Declarative Configuration**: Define your applications using Nix expressions
+- **🏭 Production Ready**: Built-in support for resource limits, health checks, and pod disruption budgets
+- **🔧 Multi-Chart Support**: Generate multiple related charts with dependency management
+- **⚡ Fast Generation**: Static manifest generation with Nix's caching and reproducibility
+- **🛡️ Type Safety**: Full input validation and type checking
+- **📊 CI/CD Integration**: Built-in GitHub Actions workflows and validation scripts
+- **🎯 GitOps Compatible**: Generate versioned charts for ArgoCD, Flux, and other GitOps tools
 
-### Key Features
+## 🏃‍♂️ Quick Start
 
-- **YAML Generation**: Generate complete Helm chart YAML manifests from Nix expressions
-- **Production Ready**: Support for pod disruption budgets, resource limits, health checks, and other production features
-- **Advanced Features**: RBAC, StatefulSets, persistent storage, secrets management, and monitoring integration
-- **Developer Friendly**: Simple API that junior DevOps engineers can use without deep Nix or Kubernetes expertise
-- **Static Manifests**: No Helm templating - all values resolved at build time for predictability
-- **Multi-environment Support**: Easy configuration for dev/staging/prod environments
-- **Kubernetes Compatibility**: Automatic API version detection for different cluster versions
+### Prerequisites
 
-## Quick Start
+- Nix with flakes support (`nix --version` >= 2.4)
+- Optional: kubectl, helm (for validation)
+
+### Installation
 
 ```bash
-# Clone the project
+# Clone the repository
 git clone https://github.com/shift/nix-helm-generator-project.git
 cd nix-helm-generator-project
 
-# Use Nix flake for development
+# Enter development environment
 nix develop
 
-# Build the Nix Helm Generator
-nix build .#nix-helm-generator
-
-# Test the examples
-./test-simple-validation.sh
+# Build and test
+nix build .#examples
+nix flake check
 ```
 
-## Documentation
+### Basic Usage
 
-- **[Project Kickoff Document](./nix-helm-generator-kickoff.md)**: Complete project overview, architecture, and implementation roadmap
-- **[AI Agent Workflow](./ai-agent-workflow/README.md)**: Development workflow and task management system
-- **[API Reference](./docs/API_REFERENCE.md)**: Complete API documentation for all functions
-- **[Usage Guide](./docs/USAGE_GUIDE.md)**: Step-by-step usage instructions and examples
-- **[Best Practices](./docs/BEST_PRACTICES.md)**: Recommended practices for production use
-- **[Troubleshooting](./docs/TROUBLESHOOTING.md)**: Common issues and debugging techniques
+```bash
+# Generate a simple nginx chart
+nix run .#my-app
 
-## Project Structure
+# Generate multiple charts
+nix run .#multi-app
 
-```
-nix-helm-generator/
-├── flake.nix                 # Nix flake configuration
-├── lib/                     # Core generation logic
-│   ├── chart.nix           # Chart metadata handling
-│   ├── resources.nix       # Kubernetes resource generators
-│   ├── production.nix      # Production features (PDBs, limits, etc.)
-│   └── validation.nix      # Input validation and type checking
-├── examples/               # Usage examples
-│   ├── nginx.nix          # Basic web server example
-│   ├── postgres-enhanced.nix  # Advanced PostgreSQL with RBAC/StatefulSet
-│   ├── prometheus-enhanced.nix  # Advanced monitoring with persistence
-│   └── ...                 # Additional examples
-│   ├── simple-app.nix      # Basic application example
-│   ├── complex-app.nix     # Full production example
-│   └── multi-env.nix       # Multi-environment setup
-├── tests/                  # Test suites
-├── docs/                   # Documentation
-└── nix-helm-generator-kickoff.md  # Project kickoff document
+# Build all examples
+nix build .#examples
 ```
 
-## Quick Examples
+## 📖 Examples
 
 ### Simple Application
 
 ```nix
-let
-  nix-helm-generator = import ./lib;
-in
-nix-helm-generator.mkChart {
-  name = "simple-web-app";
+# examples/simple-app.nix
+{
+  name = "my-web-app";
   version = "1.0.0";
-
   app = {
-    image = "nginx:alpine";
+    image = "nginx:1.25.0";
     ports = [80];
-    env = {
-      APP_ENV = "production";
-    };
+    replicas = 3;
   };
 }
 ```
@@ -90,74 +67,159 @@ nix-helm-generator.mkChart {
 ### Production Application
 
 ```nix
-let
-  nix-helm-generator = import ./lib;
-in
-nix-helm-generator.mkChart {
-  name = "production-app";
+# examples/production-app.nix
+{
+  name = "production-api";
   version = "2.1.0";
-
   app = {
-    image = "myapp:v2.1.0";
-    replicas = 5;
+    image = "myapi:v2.1.0";
     ports = [8080];
-
+    replicas = 5;
+    
     production = {
-      pdb = {
-        enabled = true;
-        minAvailable = 3;
-      };
-
       resources = {
         requests = { cpu = "200m"; memory = "256Mi"; };
         limits = { cpu = "1000m"; memory = "1Gi"; };
       };
-
+      
       healthChecks = {
         readinessProbe = {
-          httpGet = { path = "/ready"; port = 8080; };
+          httpGet = { path = "/health"; port = 8080; };
           initialDelaySeconds = 10;
         };
+      };
+      
+      pdb = {
+        enabled = true;
+        minAvailable = 3;
       };
     };
   };
 }
 ```
 
-For comprehensive examples and detailed usage instructions, see the **[Usage Guide](./docs/USAGE_GUIDE.md)**.
+### Multi-Chart Application
 
-## Development
+```nix
+# examples/microservices.nix
+{
+  name = "microservices-app";
+  version = "1.0.0";
+  charts = {
+    frontend = {
+      app = { image = "frontend:latest"; ports = [3000]; };
+    };
+    backend = {
+      app = { image = "backend:latest"; ports = [8080]; };
+    };
+    database = {
+      app = { image = "postgres:14"; ports = [5432]; };
+    };
+  };
+}
+```
 
-This project uses the AI Agent Workflow Management System for development. See [ai-agent-workflow/README.md](./ai-agent-workflow/README.md) for details on the development process.
+## 🏗️ Architecture
 
-### Prerequisites
+```
+nix-helm-generator/
+├── flake.nix              # Nix flake with packages and apps
+├── lib/                   # Core generator library
+│   ├── default.nix       # Main entry point
+│   ├── chart.nix         # Single chart generation
+│   ├── multi-chart.nix   # Multi-chart support
+│   ├── resources.nix     # Kubernetes resource templates
+│   ├── production.nix    # Production features
+│   └── validation.nix    # Input validation
+├── examples/             # Example configurations
+├── tests/               # Test suite
+├── cicd/               # CI/CD scripts and validation
+└── docs/              # Documentation
+```
 
-- Nix 2.8+ with flakes support
-- Kubernetes 1.19+ (for testing generated manifests)
-- Helm 3.x (for chart packaging)
+## 🛠️ Development
 
-### Getting Started
+### Development Environment
 
-1. Enter the development environment:
-   ```bash
-   nix develop
-   ```
+```bash
+# Enter Nix development shell
+nix develop
 
-2. Check active tasks:
-   ```bash
-   cat ai-agent-workflow/todo.md
-   ```
+# Available tools:
+# - nix (for building)
+# - kubectl (for validation)
+# - helm (for compatibility)
+# - jq, yq (for JSON/YAML processing)
+```
 
-3. Start working on tasks following the workflow documented in [ai-agent-workflow/WORKFLOW.md](./ai-agent-workflow/WORKFLOW.md)
+### Testing
 
-## Contributing
+```bash
+# Run all validation tests
+./cicd/test/validate-charts.sh
 
-See [ai-agent-workflow/README.md](./ai-agent-workflow/README.md) for information about the development workflow and contribution guidelines.
+# Run integration tests
+./cicd/test/integration-test.sh
 
-## License
+# Check flake
+nix flake check
+```
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+### Adding New Features
+
+1. Update the appropriate module in `lib/`
+2. Add examples in `examples/`
+3. Add tests in `tests/`
+4. Update documentation
+
+## 📊 CI/CD
+
+The project includes comprehensive CI/CD with GitHub Actions:
+
+- **Validation**: Flake checks, chart generation, manifest validation
+- **Testing**: Integration tests and performance benchmarks
+- **Deployment**: Automated chart generation and publishing
+
+See `.github/workflows/` for the complete pipeline.
+
+## 🎯 Use Cases
+
+- **Microservices Deployment**: Generate consistent charts for multiple services
+- **GitOps Workflows**: Create versioned manifests for ArgoCD/Flux
+- **Multi-Environment**: Generate environment-specific configurations
+- **CI/CD Integration**: Automate chart generation in build pipelines
+- **Kubernetes Migration**: Convert existing deployments to declarative Nix
+
+## 📚 Documentation
+
+- [API Reference](./docs/API_REFERENCE.md) - Complete function documentation
+- [Usage Guide](./docs/USAGE_GUIDE.md) - Detailed usage examples
+- [Best Practices](./docs/BEST_PRACTICES.md) - Production recommendations
+- [CI/CD Integration](./docs/CICD_INTEGRATION.md) - Pipeline setup guide
+- [Troubleshooting](./docs/TROUBLESHOOTING.md) - Common issues and solutions
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+### Quick Contribution Steps
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes with tests
+4. Run validation: `nix flake check`
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
+## 🔗 Related Projects
+
+- [NixOS](https://nixos.org/) - The Nix package manager and OS
+- [Helm](https://helm.sh/) - Kubernetes package manager
+- [ArgoCD](https://argo-cd.readthedocs.io/) - GitOps continuous delivery
 
 ---
 
-*For detailed project information, see the [Project Kickoff Document](./nix-helm-generator-kickoff.md)*
+**Made with ❤️ using Nix and Kubernetes**
